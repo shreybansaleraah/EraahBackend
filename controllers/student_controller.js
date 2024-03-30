@@ -1,6 +1,9 @@
 const bcrypt = require("bcrypt");
 const Student = require("../models/studentSchema.js");
 const Subject = require("../models/subjectSchema.js");
+const fs = require("fs");
+const csv = require("csv-parser");
+const NGOSchema = require("../models/NGOSchema.js");
 
 const studentRegister = async (req, res) => {
   try {

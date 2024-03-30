@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const multer = require("multer");
 
 // const { NGORegister, NGOLogIn, deleteNGO, getNGODetail, updateNGO } = require('../controllers/NGO-controller.js');
 
@@ -15,6 +16,7 @@ const {
   getAllNgo,
   removeNgo,
   updateNGO,
+  uploadBulkCsv,
 } = require("../controllers/NGO-controller.js");
 
 const {
@@ -75,6 +77,8 @@ const {
   teacherAttendance,
 } = require("../controllers/teacher-controller.js");
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 // Admin
 router.post("/AdminReg", adminRegister);
 router.post("/AdminLogin", adminLogIn);
@@ -88,6 +92,7 @@ router.post("/updateNgo", updateNGO);
 
 router.get("/allNgo", getAllNgo);
 router.get("/NGO/:id", getNGODetail);
+router.post("/NGO/uploadCsv/:id", upload.single("csvFile"), uploadBulkCsv);
 // router.delete("/NGO/:id", deleteNGO)
 
 // router.put("/NGO/:id", updateNGO)
