@@ -161,16 +161,7 @@ const uploadBulkCsv = async (req, res) => {
           });
       } else if (req.body.actionFor === "teacher") {
         const results = await processTeacherData(req);
-        await Teacher.insertMany(results)
-          .then((value) => {
-            if (value.message) res.send({ message: value.message });
-            try {
-              res.send({ data: "success" });
-            } catch (e) {}
-          })
-          .catch((e) => {
-            res.send({ data: "failed" });
-          });
+        res.send(results);
       } else if (req.body.actionFor === "class") {
         console.log("file is");
         console.log(req.file);
@@ -263,72 +254,165 @@ async function processStudentData(req) {
 }
 
 async function processTeacherData(req) {
-  const lines = req.file.buffer.toString().split("\n").slice(1);
-  const results = [];
+  try {
+    const lines = req.file.buffer.toString().split("\n").slice(1);
+    // const results = [];
 
-  for (const line of lines) {
-    const [name, teachSclass, email, password, aadhar, pan, subject, ...rest] =
-      line.split(",");
-
-    if (
-      name !== undefined &&
-      name.length !== 0 &&
-      !email &&
-      !password &&
-      !aadhar &&
-      !pan &&
-      !teachSclass &&
-      !subject
-    ) {
-      return { message: "Incorrect data, field are missing" };
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const aadharRegex = /^\d{12}$/;
-      const panRegex = /[A-Z]{5}[0-9]{4}[A-Z]{1}/;
+    for (const line of lines) {
+      console.log("line is : ", line);
+      const [
+        name,
+        teachSclass,
+        email,
+        password,
+        aadhar,
+        pan,
+        subject,
+        classTeacher,
+      ] = line.split(",");
 
       if (
         name !== undefined &&
         name.length !== 0 &&
-        (!emailRegex.test(email) ||
-          !aadharRegex.test(aadhar.replace("'"), "") ||
-          !panRegex.test(pan))
+        !email &&
+        !password &&
+        !aadhar &&
+        !pan &&
+        !teachSclass &&
+        !classTeacher &&
+        !subject
       ) {
-        return {
-          message: !emailRegex.test(email)
-            ? `Incorrect email of ${name}`
-            : !aadharRegex.test(aadhar)
-            ? `Incorrect aadhar of ${name}`
-            : `Incorrect pan of ${name}`,
-        };
+        return { message: "Incorrect data, field are missing" };
       } else {
-        await Teacher.deleteMany({
-          name,
-          teachSclass,
-          email,
-          aadhar,
-          subject,
-          school: req.params.id,
-        });
-        results.push({
-          name,
-          teachSclass,
-          email,
-          password: await bcrypt.hash(password ?? "", await bcrypt.genSalt(10)),
-          aadhar,
-          pan,
-          subject: subject ? subject.replace(/[\r\n]/g, "") : undefined,
-          school: req.params.id,
-        });
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const aadharRegex = /^\d{12}$/;
+        const panRegex = /[A-Z]{5}[0-9]{4}[A-Z]{1}/;
+
+        if (
+          name !== undefined &&
+          name.length !== 0 &&
+          (!emailRegex.test(email) ||
+            !aadharRegex.test(aadhar.replace("'"), "") ||
+            !panRegex.test(pan))
+        ) {
+          return {
+            message: !emailRegex.test(email)
+              ? `Incorrect email of ${name}`
+              : !aadharRegex.test(aadhar)
+              ? `Incorrect aadhar of ${name}`
+              : `Incorrect pan of ${name}`,
+          };
+        } else {
+          var existEmailAndClass = false;
+          console.log("start ");
+          const existingTeacherByEmail = await Teacher.findOne({ email });
+          var classId = await Sclass.findOne({
+            sclassName: teachSclass,
+            school: req.params.id,
+          });
+          const existingTeacherByEmailAndClass = await Teacher.findOne({
+            email,
+          })
+            .populate("teachSclass")
+            .exec();
+          if (existingTeacherByEmailAndClass != null) {
+            console.log("in existing teacher if condition");
+            existEmailAndClass = existingTeacherByEmailAndClass.teachSclass
+              .map((sclass) => sclass.sclassName.toString())
+              .includes(teachSclass);
+          }
+          console.log("else condition");
+          if (existEmailAndClass) {
+            continue;
+          } else if (existingTeacherByEmail) {
+            console.log("else email");
+            if (classId === undefined || !classId) {
+              console.log("undefine");
+              continue;
+            }
+            let result = await Teacher.findByIdAndUpdate(
+              existingTeacherByEmail._id,
+              { $push: { teachSclass: classId._id } },
+              { new: true }
+            );
+            // await Subject.findByIdAndUpdate(teachSubject, {
+            //   teacher: existEmailAndClass._id,
+            // });
+          } else {
+            console.log("not exist cond");
+            console.log(subject);
+            console.log(req.params.id);
+            // console.log(classTeacher.replace(/[\r\n]/g, ""));
+            var subjectId = await Subject.findOne({
+              subName: subject,
+              school: req.params.id,
+            });
+            console.log(subjectId);
+            if (
+              subjectId === undefined ||
+              !subjectId ||
+              classId === undefined ||
+              !classId
+            ) {
+              console.log("undefine");
+              continue;
+            }
+
+            var results = {
+              name,
+              teachSclass: classId._id,
+              email,
+              password: await bcrypt.hash(
+                password ?? "",
+                await bcrypt.genSalt(10)
+              ),
+              aadhar,
+              pan,
+              teachSubject: subjectId._id,
+              school: req.params.id,
+              classTeacher:
+                classTeacher.toLowerCase().replace(/[\r\n]/g, "") === "yes"
+                  ? teachSclass
+                  : "NO",
+            };
+            console.log("result created");
+            console.log(results);
+
+            if (
+              results.name.trim() !== "" &&
+              results.name.trim() !== undefined &&
+              results.name.length !== 0
+            ) {
+              console.log("results if cond");
+              var teacher = await Teacher.create(results);
+              if (classTeacher.toLowerCase() == "yes") {
+                console.log("yes class teacher");
+                await Student.updateMany(
+                  { sclassName: classId._id },
+                  { $set: { classTeacher: teacher._id } }
+                );
+                // const className = await Sclass.find({ teachSclass, school });
+                await Teacher.findOneAndUpdate(
+                  {
+                    classTeacher: classId.sclassName,
+                  },
+                  { classTeacher: "NO" }
+                );
+                await Teacher.findByIdAndUpdate(req.body.id, {
+                  classTeacher: classId.sclassName,
+                });
+              }
+            }
+          }
+        }
       }
     }
-  }
 
-  return results.filter(
-    (item) =>
-      item.name.trim() !== "" &&
-      item.name.trim() !== undefined &&
-      item.name.length !== 0
-  );
+    return { data: "success" };
+  } catch (e) {
+    console.log(e);
+    return { data: "failed" };
+  }
 }
 
 async function processClassData(req) {
