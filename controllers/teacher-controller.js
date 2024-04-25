@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt");
 const Teacher = require("../models/teacherSchema.js");
 const Subject = require("../models/subjectSchema.js");
+const Student = require("../models/studentSchema.js");
+const SClass = require("../models/sclassSchema.js");
 
 const teacherRegister = async (req, res) => {
   const {
@@ -13,6 +15,7 @@ const teacherRegister = async (req, res) => {
     school,
     teachSubject,
     teachSclass,
+    classTeacher,
   } = req.body;
   console.log("the body is ");
   console.log(req.body);
@@ -20,29 +23,103 @@ const teacherRegister = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPass = await bcrypt.hash(password, salt);
 
-    const teacher = new Teacher({
-      name,
+    let existEmailAndClass = false;
+    const existingTeacherByEmailAndClass = await Teacher.findOne({
       email,
-      password: hashedPass,
-      aadhar,
-      pan,
-      role,
-      school,
-      teachSubject,
-      teachSclass,
-    });
+    })
+      .populate("teachSclass")
+      .exec();
 
-    const existingTeacherByEmail = await Teacher.findOne({ email });
+    console.log("existingTeacherByEmailAndClass");
+    console.log(existingTeacherByEmailAndClass);
 
-    if (existingTeacherByEmail) {
-      res.send({ message: "Email already exists" });
+    if (existingTeacherByEmailAndClass != null) {
+      console.log("in existing teacher if condition");
+      existEmailAndClass = existingTeacherByEmailAndClass.teachSclass
+        .map((sclass) => sclass.sclassName.toString())
+        .includes(teachSclass);
     } else {
+      console.log("in else condition");
+    }
+
+    console.log("if condition pass");
+    const existingTeacherByEmail = await Teacher.findOne({ email });
+    // const existingTeacherByEmailAndSubject = await Teacher.findOne({ email });
+    console.log(existingTeacherByEmail);
+
+    if (existEmailAndClass) {
+      return res.send({ message: "Email with class already exists" });
+    } else if (existingTeacherByEmail) {
+      console.log("else if condition");
+      let result = await Teacher.findByIdAndUpdate(
+        existingTeacherByEmail._id,
+        { $push: { teachSclass: teachSclass } },
+        { new: true }
+      );
+      await Subject.findByIdAndUpdate(teachSubject, {
+        teacher: existEmailAndClass._id,
+      });
+
+      return res.send(result);
+    } else {
+      const teacher = new Teacher({
+        name,
+        email,
+        password: hashedPass,
+        aadhar,
+        pan,
+        role,
+        school,
+        teachSubject,
+        teachSclass,
+      });
       let result = await teacher.save();
       await Subject.findByIdAndUpdate(teachSubject, { teacher: teacher._id });
+
+      if (classTeacher) {
+        await Student.updateMany(
+          { sclassName: teachSclass },
+          { $set: { classTeacher: result._id } }
+        );
+        const className = await SClass.find({ teachSclass, school });
+        await Teacher.findOneAndUpdate(
+          {
+            classTeacher: className.sclassName,
+          },
+          { classTeacher: "NO" }
+        );
+        await Teacher.findByIdAndUpdate(req.body.id, {
+          classTeacher: className.sclassName,
+        });
+      }
+
       result.password = undefined;
-      res.send(result);
+      return res.send(result);
     }
   } catch (err) {
+    console.error(err); // Log the error for debugging
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const makeTeacherHead = async (req, res) => {
+  try {
+    const removeTeacherHead = await Teacher.findOneAndUpdate(
+      {
+        classTeacher: req.body.teachSclass,
+      },
+      { classTeacher: "NO" }
+    );
+    const teacherResult = await Teacher.findByIdAndUpdate(req.body.id, {
+      classTeacher: req.body.teachSclass,
+    });
+    const classId = await SClass.findOne({ sclassName: req.body.teachSclass });
+    await Student.updateMany(
+      { sclassName: classId._id },
+      { $set: { classTeacher: req.body.id } }
+    );
+    res.send(teacherResult);
+  } catch (e) {
     res.status(500).json(err);
   }
 };
@@ -92,18 +169,35 @@ const getTeachers = async (req, res) => {
 
 const getTeacherDetail = async (req, res) => {
   try {
-    let teacher = await Teacher.findById(req.params.id)
+    const teacher = await Teacher.findById(req.params.id)
       .populate("teachSubject", "subName sessions")
       .populate("school", "schoolName")
       .populate("teachSclass", "sclassName");
-    if (teacher) {
-      teacher.password = undefined;
-      res.send(teacher);
-    } else {
-      res.send({ message: "No teacher found" });
+
+    if (!teacher) {
+      return res.send({ message: "No teacher found" });
     }
+
+    // Create a new object or use .lean() to avoid modifying the original document
+    const teacherDetails = { ...teacher._doc };
+    teacherDetails.password = undefined;
+
+    let students = [];
+    if (teacher.teachSclass) {
+      // Assuming teachSclass is an array, so we need to handle each class separately
+      for (const sclass of teacher.teachSclass) {
+        const classStudents = await Student.find({
+          school: teacher.school.id,
+          sclassName: sclass.id,
+        }).populate("sclassName", "sclassName");
+        students = students.concat(classStudents);
+      }
+    }
+
+    res.send({ ...teacherDetails, studentsList: students });
   } catch (err) {
-    res.status(500).json(err);
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -234,4 +328,5 @@ module.exports = {
   deleteTeachers,
   deleteTeachersByClass,
   teacherAttendance,
+  makeTeacherHead,
 };

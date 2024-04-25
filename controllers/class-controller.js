@@ -86,9 +86,26 @@ const deleteSclass = async (req, res) => {
     const deletedSubjects = await Subject.deleteMany({
       sclassName: req.params.id,
     });
-    const deletedTeachers = await Teacher.deleteMany({
+    const teacher = await Teacher.findOne({
       teachSclass: req.params.id,
     });
+
+    // const deletedCount = deletionResult.deletedCount || 0;
+
+    if (!teacher) {
+      // res.send({ message: "No teachers found to delete" });
+      res.send(deletedClass);
+      return;
+    }
+
+    await Teacher.updateOne(
+      { _id: teacher._id },
+      { $pull: { teachSclass: req.params.id } }
+    );
+    if (teacher.teachSclass.length === 1) {
+      await Teacher.deleteOne({ _id: teacher._id });
+      // Optionally, you can delete related subjects or perform any other cleanup here
+    }
     res.send(deletedClass);
   } catch (error) {
     res.status(500).json(error);

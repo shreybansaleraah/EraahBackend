@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt");
 const Student = require("../models/studentSchema.js");
 const Subject = require("../models/subjectSchema.js");
+const Teacher = require("../models/teacherSchema.js");
+const Sclass = require("../models/sclassSchema.js");
 const fs = require("fs");
 const csv = require("csv-parser");
 const NGOSchema = require("../models/NGOSchema.js");
@@ -19,12 +21,30 @@ const studentRegister = async (req, res) => {
     if (existingStudent) {
       res.send({ message: "Roll Number already exists" });
     } else {
+      const className = await Sclass.findById(req.body.sclassName);
+      console.log("find class ", className);
+      console.log("find class ", className.sclassName);
+      console.log("find class ", req.body.NGOID);
+      const classTeacher = await Teacher.findOne({
+        classTeacher: className.sclassName,
+        school: req.body.NGOID,
+      });
+      console.log("find class teacher");
+      console.log(classTeacher);
       const student = new Student({
         ...req.body,
         school: req.body.NGOID,
       });
 
+      if (classTeacher) {
+        console.log("inside class teacher");
+        student.classTeacher = classTeacher._id;
+        console.log("exiting class teacher");
+      }
       let result = await student.save();
+      // console.log(result);
+
+      // console.log(result.populate("sclassName"));
 
       result.password = undefined;
       res.send(result);
@@ -65,14 +85,17 @@ const studentLogIn = async (req, res) => {
 
 const getStudents = async (req, res) => {
   try {
-    let students = await Student.find({ school: req.params.id }).populate(
-      "sclassName",
-      "sclassName"
-    );
+    let students = await Student.find({ school: req.params.id })
+      .populate("sclassName", "sclassName")
+      .populate({
+        path: "classTeacher",
+        select: "-password", // specify the field you want to exclude with a minus sign (-)
+      });
     if (students.length > 0) {
       let modifiedStudents = students.map((student) => {
         return { ...student._doc };
       });
+      // modifiedStudents = modifiedStudents.classTeacher.;
       res.send(modifiedStudents);
     } else {
       res.send({ message: "No students found" });
@@ -88,6 +111,10 @@ const getStudentDetail = async (req, res) => {
       .populate("school", "schoolName")
       .populate("sclassName", "sclassName")
       .populate("examResult.subName", "subName")
+      .populate({
+        path: "classTeacher",
+        select: "-password", // specify the field you want to exclude with a minus sign (-)
+      })
       .populate("attendance.subName", "subName sessions");
     if (student) {
       // student.password = undefined;

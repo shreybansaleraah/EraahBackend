@@ -75,7 +75,16 @@ const {
   deleteTeacher,
   updateTeacherSubject,
   teacherAttendance,
+  makeTeacherHead,
 } = require("../controllers/teacher-controller.js");
+const {
+  facilityCreate,
+  facilityList,
+  deleteFacility,
+  updateFacility,
+  allFacilitiesList,
+  uploadFacilityProof,
+} = require("../controllers/facility-controller.js");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -84,6 +93,7 @@ router.post("/AdminReg", adminRegister);
 router.post("/AdminLogin", adminLogIn);
 router.get("/adminDashboard/:id", getAdminDashboardData);
 router.get("/admin/notices/:id", allNoticecList);
+router.get("/admin/facilities/:id", allFacilitiesList);
 // NGO
 router.post("/NGOReg", NGORegister);
 router.post("/NGOLogin", NGOLogIn);
@@ -128,6 +138,7 @@ router.put("/RemoveStudentAtten/:id", removeStudentAttendance);
 
 router.post("/TeacherReg", teacherRegister);
 router.post("/TeacherLogin", teacherLogIn);
+router.post("/changeClassTeacher", makeTeacherHead);
 
 router.get("/Teachers/:id", getTeachers);
 router.get("/Teacher/:id", getTeacherDetail);
@@ -150,6 +161,18 @@ router.delete("/Notices/:id", deleteNotices);
 router.delete("/Notice/:id", deleteNotice);
 
 router.put("/Notice/:id", updateNotice);
+
+// facility
+
+router.post("/addFacility", facilityCreate);
+router.post("/uploadFacilityProof", uploadFacilityProof);
+
+router.get("/facilityList/:id", facilityList);
+
+router.delete("/facility/:id", deleteFacility);
+// router.delete("/Notice/:id", deleteNotice);
+
+router.put("/facility/:id", updateFacility);
 
 // Complain
 

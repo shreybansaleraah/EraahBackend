@@ -43,10 +43,18 @@ const teacherSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "subject",
     },
+    classTeacher: {
+      type: String,
+      default: "NO",
+    },
     teachSclass: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "sclass",
-      required: true,
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "sclass",
+          required: true,
+        },
+      ],
     },
     attendance: [
       {

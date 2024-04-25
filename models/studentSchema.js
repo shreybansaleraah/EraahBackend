@@ -41,6 +41,12 @@ const studentSchema = new mongoose.Schema({
     ref: "NGO",
     required: true,
   },
+  classTeacher: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "teacher",
+    required: false,
+    // default: "",
+  },
   role: {
     type: String,
     default: "Student",
