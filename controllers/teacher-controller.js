@@ -228,6 +228,10 @@ const deleteTeacher = async (req, res) => {
       { teacher: deletedTeacher._id, teacher: { $exists: true } },
       { $unset: { teacher: 1 } }
     );
+    await Student.updateOne(
+      { classTeacher: deletedTeacher._id, classTeacher: { $exists: true } },
+      { $unset: { classTeacher: 1 } }
+    );
 
     res.send(deletedTeacher);
   } catch (error) {
@@ -254,6 +258,13 @@ const deleteTeachers = async (req, res) => {
         teacher: { $exists: true },
       },
       { $unset: { teacher: "" }, $unset: { teacher: null } }
+    );
+    await Student.updateMany(
+      {
+        classTeacher: { $in: deletedTeachers.map((teacher) => teacher._id) },
+        classTeacher: { $exists: true },
+      },
+      { $unset: { classTeacher: "" }, $unset: { classTeacher: null } }
     );
 
     res.send(deletionResult);

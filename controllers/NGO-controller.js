@@ -205,6 +205,9 @@ async function processStudentData(req) {
   const results = [];
 
   for (const line of lines) {
+    if (line.length < 7) {
+      continue;
+    }
     const [
       name,
       rollNum,
@@ -228,23 +231,41 @@ async function processStudentData(req) {
     ) {
       return { message: "Incorrect data, field are missing" };
     }
-    await Student.deleteMany({
-      name,
-      rollNum,
+    var classId = await Sclass.findOne({
       sclassName: className,
       school: req.params.id,
     });
-    results.push({
+    if (classId === undefined || !classId) {
+      classId = await Sclass.create({
+        sclassName: className,
+        school: req.params.id,
+      });
+    }
+    await Student.deleteMany({
       name,
       rollNum,
-      sclassName: className,
+      sclassName: classId._id,
+      school: req.params.id,
+    });
+    var classTeacherId = await Teacher.findOne({
+      school: req.params.id,
+      classTeacher: className,
+    });
+    var payload = {
+      name,
+      rollNum,
+      sclassName: classId._id,
       fatherName,
       fatherOcc,
       motherName,
       motherOcc: motherOcc ? motherOcc.replace(/[\r\n]/g, "") : undefined,
       school: req.params.id,
       attendance: [],
-    });
+    };
+    if (classTeacherId !== undefined && classTeacherId) {
+      payload = { ...payload, classTeacher: classTeacherId._id };
+    }
+    results.push(payload);
   }
 
   return results.filter(
@@ -260,6 +281,9 @@ async function processTeacherData(req) {
 
     for (const line of lines) {
       console.log("line is : ", line);
+      if (line.length < 8) {
+        continue;
+      }
       const [
         name,
         teachSclass,
@@ -328,7 +352,11 @@ async function processTeacherData(req) {
             console.log("else email");
             if (classId === undefined || !classId) {
               console.log("undefine");
-              continue;
+              classId = await Sclass.create({
+                sclassName: teachSclass,
+                school: req.params.id,
+              });
+              // continue;
             }
             let result = await Teacher.findByIdAndUpdate(
               existingTeacherByEmail._id,
@@ -348,14 +376,20 @@ async function processTeacherData(req) {
               school: req.params.id,
             });
             console.log(subjectId);
-            if (
-              subjectId === undefined ||
-              !subjectId ||
-              classId === undefined ||
-              !classId
-            ) {
+            if (classId === undefined || !classId) {
               console.log("undefine");
-              continue;
+              // continue;
+              classId = await Sclass.create({
+                sclassName: teachSclass,
+                school: req.params.id,
+              });
+            }
+            if (subjectId === undefined || !subjectId) {
+              subjectId = await Subject.create({
+                subName: subject,
+                school: req.params.id,
+                sclassName: classId._id,
+              });
             }
 
             var results = {
@@ -385,7 +419,13 @@ async function processTeacherData(req) {
             ) {
               console.log("results if cond");
               var teacher = await Teacher.create(results);
-              if (classTeacher.toLowerCase() == "yes") {
+              await Subject.findByIdAndUpdate(subjectId._id, {
+                teacher: teacher._id,
+              });
+              // console.log(classTeacher.toLowerCase().includes("yes"));
+              // console.log(classTeacher.toLowerCase());
+              // console.log(typeof classTeacher);
+              if (classTeacher.toLowerCase().includes("yes")) {
                 console.log("yes class teacher");
                 await Student.updateMany(
                   { sclassName: classId._id },

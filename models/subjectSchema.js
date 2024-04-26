@@ -8,11 +8,13 @@ const subjectSchema = new mongoose.Schema(
     },
     subCode: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     sessions: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
     sclassName: {
       type: mongoose.Schema.Types.ObjectId,
