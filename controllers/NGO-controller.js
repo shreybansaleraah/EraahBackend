@@ -329,7 +329,10 @@ async function processTeacherData(req) {
         } else {
           var existEmailAndClass = false;
           console.log("start ");
-          const existingTeacherByEmail = await Teacher.findOne({ email });
+          const existingTeacherByEmail = await Teacher.findOne({
+            email,
+            school: req.params.id,
+          });
           var classId = await Sclass.findOne({
             sclassName: teachSclass,
             school: req.params.id,
