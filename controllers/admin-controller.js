@@ -32,12 +32,12 @@ const adminRegister = async (req, res) => {
 
 const adminLogIn = async (req, res) => {
   if (req.body.email && req.body.password) {
-    console.log("req.body.email");
-    console.log(req.body.email);
+    // console.log("req.body.email");
+    // console.log(req.body.email);
     let admin = await adminSchema.findOne({ email: req.body.email });
     // let admin = await adminSchema.find();
-    console.log("admin");
-    console.log(admin);
+    // console.log("admin");
+    // console.log(admin);
     if (admin) {
       const validated = await bcrypt.compare(req.body.password, admin.password);
       if (validated) {
@@ -70,10 +70,10 @@ const getAdminDetail = async (req, res) => {
 const getAdminDashboardData = async (req, res) => {
   try {
     let admin = await adminSchema.findById(req.params.id);
-    console.log("params id");
-    console.log(req.params.id);
-    console.log("admin");
-    console.log(admin);
+    // console.log("params id");
+    // console.log(req.params.id);
+    // console.log("admin");
+    // console.log(admin);
     if (admin) {
       let teachers = await teacherSchema.countDocuments();
       let students = await studentSchema.countDocuments();

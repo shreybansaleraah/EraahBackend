@@ -17,8 +17,8 @@ const teacherRegister = async (req, res) => {
     teachSclass,
     classTeacher,
   } = req.body;
-  console.log("the body is ");
-  console.log(req.body);
+  // console.log("the body is ");
+  // console.log(req.body);
   try {
     const salt = await bcrypt.genSalt(10);
     const hashedPass = await bcrypt.hash(password, salt);
@@ -30,27 +30,27 @@ const teacherRegister = async (req, res) => {
       .populate("teachSclass")
       .exec();
 
-    console.log("existingTeacherByEmailAndClass");
-    console.log(existingTeacherByEmailAndClass);
+    // console.log("existingTeacherByEmailAndClass");
+    // console.log(existingTeacherByEmailAndClass);
 
     if (existingTeacherByEmailAndClass != null) {
-      console.log("in existing teacher if condition");
+      // console.log("in existing teacher if condition");
       existEmailAndClass = existingTeacherByEmailAndClass.teachSclass
         .map((sclass) => sclass.sclassName.toString())
         .includes(teachSclass);
     } else {
-      console.log("in else condition");
+      // console.log("in else condition");
     }
 
-    console.log("if condition pass");
+    // console.log("if condition pass");
     const existingTeacherByEmail = await Teacher.findOne({ email });
     // const existingTeacherByEmailAndSubject = await Teacher.findOne({ email });
-    console.log(existingTeacherByEmail);
+    // console.log(existingTeacherByEmail);
 
     if (existEmailAndClass) {
       return res.send({ message: "Email with class already exists" });
     } else if (existingTeacherByEmail) {
-      console.log("else if condition");
+      // console.log("else if condition");
       let result = await Teacher.findByIdAndUpdate(
         existingTeacherByEmail._id,
         { $push: { teachSclass: teachSclass } },
@@ -77,20 +77,28 @@ const teacherRegister = async (req, res) => {
       await Subject.findByIdAndUpdate(teachSubject, { teacher: teacher._id });
 
       if (classTeacher) {
+        // // console.log("classTeacher is getting yes");
         await Student.updateMany(
           { sclassName: teachSclass },
           { $set: { classTeacher: result._id } }
         );
-        const className = await SClass.find({ teachSclass, school });
+        const className = await SClass.findOne({ _id: teachSclass, school });
+        // // console.log(result._id);
+        // // console.log(className);
+        // // console.log(teachSclass);
+        // // console.log(school);
         await Teacher.findOneAndUpdate(
           {
             classTeacher: className.sclassName,
           },
           { classTeacher: "NO" }
         );
-        await Teacher.findByIdAndUpdate(req.body.id, {
+
+        // // console.log(className.sclassName);
+        var resv = await Teacher.findByIdAndUpdate(result._id, {
           classTeacher: className.sclassName,
         });
+        // console.log(resv);
       }
 
       result.password = undefined;

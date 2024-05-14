@@ -13,22 +13,22 @@ const NGORegister = async (req, res) => {
     const existingNGOByEmail = await NGO.findOne({ email: req.body.email });
     const existingNGOByName = await NGO.findOne({ name: req.body.name });
     const salt = await bcrypt.genSalt(10);
-    console.log("created salt");
-    console.log(salt);
-    console.log(req.body);
-    console.log(req.body.password);
+    // console.log("created salt");
+    // console.log(salt);
+    // console.log(req.body);
+    // console.log(req.body.password);
     const hashedPass = await bcrypt.hash(req.body.password, salt);
-    console.log("hashed pass");
-    console.log(hashedPass);
+    // console.log("hashed pass");
+    // console.log(hashedPass);
 
     // upload images and get url for bank statement and address prrof
-    console.log("adding ngo");
+    // console.log("adding ngo");
     const ngo = new NGO({
       ...req.body,
       password: hashedPass,
     });
-    console.log("ngo object");
-    console.log(ngo);
+    // console.log("ngo object");
+    // console.log(ngo);
 
     if (existingNGOByEmail) {
       res.send({ message: "Email already exists" });
@@ -40,7 +40,7 @@ const NGORegister = async (req, res) => {
       res.send("success");
     }
   } catch (err) {
-    console.log(err);
+    // console.log(err);
     if (err.code === 11000) {
       // Duplicate key error
       console.error("Duplicate key error:", err.message);
@@ -104,7 +104,7 @@ const getAllNgo = async (req, res) => {
 };
 
 const removeNgo = async (req, res) => {
-  console.log(req.params.id);
+  // console.log(req.params.id);
   try {
     const result = await NGO.findByIdAndDelete(req.params.id);
 
@@ -117,16 +117,16 @@ const removeNgo = async (req, res) => {
 
     res.send("success");
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json(error);
   }
 };
 
 const updateNGO = async (req, res) => {
   try {
-    console.log("updating ngo start");
-    console.log(req.body);
-    console.log(req.body.password);
+    // console.log("updating ngo start");
+    // console.log(req.body);
+    // console.log(req.body.password);
     if (req.body.password) {
       const salt = await bcrypt.genSalt(10);
       req.body.password = await bcrypt.hash(req.body.password, salt);
@@ -136,7 +136,7 @@ const updateNGO = async (req, res) => {
     result.password = undefined;
     res.send(result);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json(error);
   }
 };
@@ -144,10 +144,13 @@ const updateNGO = async (req, res) => {
 const uploadBulkCsv = async (req, res) => {
   try {
     const ngoExist = await NGO.findById(req.params.id);
-    console.log("body is ", req.body.actionFor);
+    // console.log("body is ", req.body.actionFor);
 
     if (ngoExist && req.body.actionFor) {
       if (req.body.actionFor === "student") {
+        // // console.log(req.file);
+        // // console.log(req.file.path);
+
         const results = await processStudentData(req);
         await Student.insertMany(results)
           .then((value) => {
@@ -163,8 +166,8 @@ const uploadBulkCsv = async (req, res) => {
         const results = await processTeacherData(req);
         res.send(results);
       } else if (req.body.actionFor === "class") {
-        console.log("file is");
-        console.log(req.file);
+        // console.log("file is");
+        // console.log(req.file);
         const results = await processClassData(req);
 
         await Sclass.insertMany(results)
@@ -195,7 +198,7 @@ const uploadBulkCsv = async (req, res) => {
       res.status(401).send({ message: "Unauthorized" });
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(400).json(error);
   }
 };
@@ -280,7 +283,7 @@ async function processTeacherData(req) {
     // const results = [];
 
     for (const line of lines) {
-      console.log("line is : ", line);
+      // console.log("line is : ", line);
       if (line.length < 8) {
         continue;
       }
@@ -328,7 +331,7 @@ async function processTeacherData(req) {
           };
         } else {
           var existEmailAndClass = false;
-          console.log("start ");
+          // console.log("start ");
           const existingTeacherByEmail = await Teacher.findOne({
             email,
             school: req.params.id,
@@ -343,18 +346,18 @@ async function processTeacherData(req) {
             .populate("teachSclass")
             .exec();
           if (existingTeacherByEmailAndClass != null) {
-            console.log("in existing teacher if condition");
+            // console.log("in existing teacher if condition");
             existEmailAndClass = existingTeacherByEmailAndClass.teachSclass
               .map((sclass) => sclass.sclassName.toString())
               .includes(teachSclass);
           }
-          console.log("else condition");
+          // console.log("else condition");
           if (existEmailAndClass) {
             continue;
           } else if (existingTeacherByEmail) {
-            console.log("else email");
+            // console.log("else email");
             if (classId === undefined || !classId) {
-              console.log("undefine");
+              // console.log("undefine");
               classId = await Sclass.create({
                 sclassName: teachSclass,
                 school: req.params.id,
@@ -370,17 +373,17 @@ async function processTeacherData(req) {
             //   teacher: existEmailAndClass._id,
             // });
           } else {
-            console.log("not exist cond");
-            console.log(subject);
-            console.log(req.params.id);
-            // console.log(classTeacher.replace(/[\r\n]/g, ""));
+            // console.log("not exist cond");
+            // console.log(subject);
+            // console.log(req.params.id);
+            // // console.log(classTeacher.replace(/[\r\n]/g, ""));
             var subjectId = await Subject.findOne({
               subName: subject,
               school: req.params.id,
             });
-            console.log(subjectId);
+            // console.log(subjectId);
             if (classId === undefined || !classId) {
-              console.log("undefine");
+              // console.log("undefine");
               // continue;
               classId = await Sclass.create({
                 sclassName: teachSclass,
@@ -412,24 +415,24 @@ async function processTeacherData(req) {
                   ? teachSclass
                   : "NO",
             };
-            console.log("result created");
-            console.log(results);
+            // console.log("result created");
+            // console.log(results);
 
             if (
               results.name.trim() !== "" &&
               results.name.trim() !== undefined &&
               results.name.length !== 0
             ) {
-              console.log("results if cond");
+              // console.log("results if cond");
               var teacher = await Teacher.create(results);
               await Subject.findByIdAndUpdate(subjectId._id, {
                 teacher: teacher._id,
               });
-              // console.log(classTeacher.toLowerCase().includes("yes"));
-              // console.log(classTeacher.toLowerCase());
-              // console.log(typeof classTeacher);
+              // // console.log(classTeacher.toLowerCase().includes("yes"));
+              // // console.log(classTeacher.toLowerCase());
+              // // console.log(typeof classTeacher);
               if (classTeacher.toLowerCase().includes("yes")) {
-                console.log("yes class teacher");
+                // console.log("yes class teacher");
                 await Student.updateMany(
                   { sclassName: classId._id },
                   { $set: { classTeacher: teacher._id } }
@@ -453,15 +456,15 @@ async function processTeacherData(req) {
 
     return { data: "success" };
   } catch (e) {
-    console.log(e);
+    // console.log(e);
     return { data: "failed" };
   }
 }
 
 async function processClassData(req) {
-  console.log("class");
-  console.log(req.file);
-  // console.log(file);
+  // console.log("class");
+  // console.log(req.file);
+  // // console.log(file);
 
   const lines = req.file.buffer.toString().split("\n").slice(1);
   const results = [];
@@ -490,7 +493,7 @@ async function processClassData(req) {
   //   .pipe(csv())
   //   .on("data", (data) => results.push(data))
   //   .on("end", () => {
-  //     console.log(results);
+  //     // console.log(results);
   //   });
 }
 

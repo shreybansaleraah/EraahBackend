@@ -22,29 +22,29 @@ const studentRegister = async (req, res) => {
       res.send({ message: "Roll Number already exists" });
     } else {
       const className = await Sclass.findById(req.body.sclassName);
-      console.log("find class ", className);
-      console.log("find class ", className.sclassName);
-      console.log("find class ", req.body.NGOID);
+      // console.log("find class ", className);
+      // console.log("find class ", className.sclassName);
+      // console.log("find class ", req.body.NGOID);
       const classTeacher = await Teacher.findOne({
         classTeacher: className.sclassName,
         school: req.body.NGOID,
       });
-      console.log("find class teacher");
-      console.log(classTeacher);
+      // console.log("find class teacher");
+      // console.log(classTeacher);
       const student = new Student({
         ...req.body,
         school: req.body.NGOID,
       });
 
       if (classTeacher) {
-        console.log("inside class teacher");
+        // console.log("inside class teacher");
         student.classTeacher = classTeacher._id;
-        console.log("exiting class teacher");
+        // console.log("exiting class teacher");
       }
       let result = await student.save();
-      // console.log(result);
+      // // console.log(result);
 
-      // console.log(result.populate("sclassName"));
+      // // console.log(result.populate("sclassName"));
 
       result.password = undefined;
       res.send(result);

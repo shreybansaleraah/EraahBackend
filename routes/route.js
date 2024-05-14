@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const multer = require("multer");
-
+const { celebrate, Segments } = require("celebrate");
+const validation = require("../validation/donorValidation.js");
 // const { NGORegister, NGOLogIn, deleteNGO, getNGODetail, updateNGO } = require('../controllers/NGO-controller.js');
 
 const {
@@ -85,6 +86,15 @@ const {
   allFacilitiesList,
   uploadFacilityProof,
 } = require("../controllers/facility-controller.js");
+const {
+  donorRegister,
+  donorUpdate,
+  donorDelete,
+  getDonorTeachers,
+  generateOtp,
+  verifyDonorOtp,
+  getDonorInfo,
+} = require("../controllers/donor-controller.js");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -94,6 +104,60 @@ router.post("/AdminLogin", adminLogIn);
 router.get("/adminDashboard/:id", getAdminDashboardData);
 router.get("/admin/notices/:id", allNoticecList);
 router.get("/admin/facilities/:id", allFacilitiesList);
+router.post(
+  "/admin/addDonor",
+  celebrate({
+    [Segments.BODY]: validation.donorFields,
+  }),
+  donorRegister
+);
+router.post(
+  "/admin/updateDonor",
+  celebrate({
+    [Segments.BODY]: validation.donorFields,
+    [Segments.QUERY]: validation.donorId,
+  }),
+  donorUpdate
+);
+router.get(
+  "/admin/deleteDonor",
+  celebrate({
+    [Segments.QUERY]: validation.donorId,
+  }),
+  donorDelete
+);
+router.get(
+  "/admin/getAllTeachers",
+  celebrate({
+    [Segments.QUERY]: validation.donorId,
+  }),
+  getDonorTeachers
+);
+
+// donor
+
+router.post(
+  "/donorGenerateLogin",
+  celebrate({
+    [Segments.BODY]: validation.donorAuthLogin,
+  }),
+  generateOtp
+);
+router.post(
+  "/donorVerifyLogin",
+  celebrate({
+    [Segments.BODY]: validation.donorAuthVerify,
+  }),
+  verifyDonorOtp
+);
+router.get(
+  "/donorInfo",
+  celebrate({
+    [Segments.QUERY]: validation.donorId,
+  }),
+  getDonorInfo
+);
+
 // NGO
 router.post("/NGOReg", NGORegister);
 router.post("/NGOLogin", NGOLogIn);
