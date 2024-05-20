@@ -5,7 +5,7 @@ const OTPModel = new mongoose.Schema({
   //   type: String,
   //   required: false,
   // },
-  phone: {
+  email: {
     type: String,
     required: true,
   },
@@ -22,7 +22,7 @@ const OTPModel = new mongoose.Schema({
     type: String,
     required: true,
   },
-  createdAt: { type: Date, expires: 600, default: Date.now() }, // expires in 10 min
+  createdAt: { type: Date, expires: 600, default: Date.now }, // expires in 10 min
 
   //   otpExprAt: {
   //     type: Number,

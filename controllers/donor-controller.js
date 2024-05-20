@@ -2,6 +2,7 @@ const donorInfoSchema = require("../models/donorInfoSchema");
 const { APIResponse, MathUtil } = require("../utility");
 const Teacher = require("../models/teacherSchema.js");
 const otpModel = require("../models/otpModel.js");
+const { sendMail } = require("../utility/index.js");
 
 const donorRegister = (req, res) => {
   // console.log("Donor registeration start");
@@ -93,32 +94,37 @@ const generateOtp = (req, res) => {
   // logger.debug("body is %o ", body);
 
   donorInfoSchema
-    .findOne({ phoneNumber: body.phone })
+    .findOne({ email: body.email })
     .then((donorExist) => {
       if (donorExist) {
         otpModel
           .deleteMany({
-            phone: body.phone,
+            email: body.email,
           })
           .then((delRes) => {
             // console.log("deleted");
             otpModel
               .create({
-                phone: body.phone,
-                //   otp: pin,
-                otp: "9999",
+                email: body.email,
+                otp: pin,
+                // otp: "9999",
               })
               .then((value) => {
                 // logger.debug("created success %o", value);
                 // logger.info("generated otp success");
-                //   sendMail("your foeVideos account OTP", pin, body.emailId);
+                console.log(value);
+                sendMail.sendMail(
+                  "your Eraah donor login account OTP",
+                  pin,
+                  body.email
+                );
                 // return value;
-                APIResponse.success(res, `otp sent to ${body.phone}`, {});
+                APIResponse.success(res, `otp sent to ${body.email}`, {});
               })
               .catch((e) => {
                 // logger.debug("error in %o ", e);
                 // logger.error(e);
-                // console.log(e);
+                console.log(e);
                 APIResponse.badRequest(res, "something went wrong", {});
               });
 
@@ -142,11 +148,9 @@ const verifyDonorOtp = (req, res) => {
     .findOneAndDelete(req.body)
     .then((value) => {
       if (value) {
-        donorInfoSchema
-          .findOne({ phoneNumber: req.body.phone })
-          .then((donorInfo) => {
-            APIResponse.success(res, "otp verified", donorInfo);
-          });
+        donorInfoSchema.findOne({ email: req.body.email }).then((donorInfo) => {
+          APIResponse.success(res, "otp verified", donorInfo);
+        });
       } else {
         APIResponse.notFound(res, "Invalid Otp", {});
       }

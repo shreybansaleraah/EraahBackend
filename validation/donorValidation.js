@@ -77,18 +77,28 @@ module.exports = {
   }),
 
   donorAuthLogin: Joi.object({
-    phone: Joi.string().required().min(10).max(10).messages({
-      "string.base": "phone should be a string",
-      "any.required": "phone is required",
-      "string.pattern.base": "Invalid phone number",
-    }),
+    // phone: Joi.string().required().min(10).max(10).messages({
+    //   "string.base": "phone should be a string",
+    //   "any.required": "phone is required",
+    //   "string.pattern.base": "Invalid phone number",
+    // }),
+
+    email: Joi.string()
+      .email({ minDomainSegments: 2, tlds: { allow: ["com", "net"] } })
+      .messages({
+        "string.email": "Invalid email",
+        "any.required": "email is required",
+      })
+      .required(),
   }),
   donorAuthVerify: Joi.object({
-    phone: Joi.string().required().min(10).max(10).messages({
-      "string.base": "phone should be a string",
-      "any.required": "phone is required",
-      "string.pattern.base": "Invalid phone number",
-    }),
+    email: Joi.string()
+      .email({ minDomainSegments: 2, tlds: { allow: ["com", "net"] } })
+      .messages({
+        "string.email": "Invalid email",
+        "any.required": "email is required",
+      })
+      .required(),
     otp: Joi.string()
       .min(4)
       .max(4)

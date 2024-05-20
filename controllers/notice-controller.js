@@ -1,5 +1,7 @@
 const adminSchema = require("../models/adminSchema.js");
+const donorInfoSchema = require("../models/donorInfoSchema.js");
 const Notice = require("../models/noticeSchema.js");
+const { APIResponse } = require("../utility/index.js");
 
 const noticeCreate = async (req, res) => {
   try {
@@ -30,16 +32,21 @@ const noticeList = async (req, res) => {
 };
 const allNoticecList = async (req, res) => {
   try {
-    let admin = adminSchema.findById(req.params.id);
+    let admin = await adminSchema.findById(req.params.id);
+    if (!admin) {
+      admin = await donorInfoSchema.findById(req.params.id);
+    }
+
     if (admin) {
       let notices = await Notice.find({}).populate("school");
       if (notices.length > 0) {
-        res.send(notices);
+        APIResponse.success(res, null, notices);
       } else {
-        res.send({ message: "No notices found" });
+        APIResponse.notFound(res, "No notices found", {});
       }
     } else {
-      res.send({ message: "Unauthorized" });
+      APIResponse.unAuthorized(res, "Unauthorized", {});
+      // res.send({ message: "Unauthorized" });
     }
   } catch (err) {
     res.status(500).json(err);
