@@ -2,6 +2,7 @@ const donorInfoSchema = require("../models/donorInfoSchema");
 const { APIResponse, MathUtil } = require("../utility");
 const Teacher = require("../models/teacherSchema.js");
 const otpModel = require("../models/otpModel.js");
+const AdminModel = require("../models/adminSchema.js");
 const { sendMail } = require("../utility/index.js");
 
 const donorRegister = (req, res) => {
@@ -49,6 +50,32 @@ const getDonorInfo = (req, res) => {
     })
     .catch((err) => {
       APIResponse.badRequest(res, err, {});
+    });
+};
+const getAllDonors = (req, res) => {
+  AdminModel.findById(req.query.id)
+    .then((value) => {
+      console.log("value");
+      console.log(value);
+      if (value) {
+        donorInfoSchema
+          .find({})
+          .then((donor) => {
+            if (donor) {
+              APIResponse.success(res, "success", donor);
+            } else {
+              APIResponse.notFound(res, "no donor found", {});
+            }
+          })
+          .catch((err) => {
+            APIResponse.badRequest(res, err, {});
+          });
+      } else {
+        APIResponse.unAuthorized(res, e, {});
+      }
+    })
+    .catch((e) => {
+      APIResponse.badRequest(res, e, {});
     });
 };
 const getDonorTeachers = (req, res) => {
@@ -171,4 +198,5 @@ module.exports = {
   generateOtp,
   verifyDonorOtp,
   getDonorInfo,
+  getAllDonors,
 };

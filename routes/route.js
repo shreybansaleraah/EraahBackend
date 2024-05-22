@@ -94,6 +94,7 @@ const {
   generateOtp,
   verifyDonorOtp,
   getDonorInfo,
+  getAllDonors,
 } = require("../controllers/donor-controller.js");
 
 const storage = multer.memoryStorage();
@@ -104,6 +105,13 @@ router.post("/AdminLogin", adminLogIn);
 router.get("/adminDashboard/:id", getAdminDashboardData);
 router.get("/admin/notices/:id", allNoticecList);
 router.get("/admin/facilities/:id", allFacilitiesList);
+router.get(
+  "/admin/getAllDonor",
+  celebrate({
+    [Segments.QUERY]: validation.donorId,
+  }),
+  getAllDonors
+);
 router.post(
   "/admin/addDonor",
   celebrate({
