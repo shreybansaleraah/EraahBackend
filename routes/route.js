@@ -2,6 +2,7 @@ const router = require("express").Router();
 const multer = require("multer");
 const { celebrate, Segments } = require("celebrate");
 const validation = require("../validation/donorValidation.js");
+const contactValidation = require("../validation/contactValidation.js");
 // const { NGORegister, NGOLogIn, deleteNGO, getNGODetail, updateNGO } = require('../controllers/NGO-controller.js');
 
 const {
@@ -95,7 +96,16 @@ const {
   verifyDonorOtp,
   getDonorInfo,
   getAllDonors,
+  donate,
+
+  paymentSuccess,
+  donorHistory,
+  donorNgos,
+  getNgoTeachers,
+  getNgoDetails,
 } = require("../controllers/donor-controller.js");
+const { contactUs } = require("../controllers/connectUs-controller.js");
+const { contactFields } = require("../validation/contactValidation.js");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -141,6 +151,20 @@ router.get(
   }),
   getDonorTeachers
 );
+router.get(
+  "/admin/getNgoTeachers",
+  celebrate({
+    [Segments.QUERY]: validation.donorGetTeachers,
+  }),
+  getNgoTeachers
+);
+router.get(
+  "/admin/getNgoDetails",
+  celebrate({
+    [Segments.QUERY]: validation.donorGetTeachers,
+  }),
+  getNgoDetails
+);
 
 // donor
 
@@ -165,6 +189,38 @@ router.get(
   }),
   getDonorInfo
 );
+router.post(
+  "/donate",
+  celebrate({
+    [Segments.BODY]: validation.donate,
+  }),
+  // [],
+  donate
+);
+router.get(
+  "/donate/success",
+  celebrate({
+    [Segments.QUERY]: validation.donorId,
+  }),
+  paymentSuccess
+);
+router.get(
+  "/donorHistory",
+  celebrate({
+    [Segments.QUERY]: validation.donorId,
+  }),
+  donorHistory
+);
+router.get(
+  "/donorNgos",
+  celebrate({
+    [Segments.QUERY]: validation.donorId,
+  }),
+  donorNgos
+);
+router.post("/donate/failed", [], (req, res) => {
+  console.log("failed");
+});
 
 // NGO
 router.post("/NGOReg", NGORegister);
@@ -276,5 +332,14 @@ router.get("/Subject/:id", getSubjectDetail);
 router.delete("/Subject/:id", deleteSubject);
 router.delete("/Subjects/:id", deleteSubjects);
 router.delete("/SubjectsClass/:id", deleteSubjectsByClass);
+
+// connect us
+router.delete(
+  "/contact",
+  celebrate({
+    [Segments.BODY]: contactValidation.contactFields,
+  }),
+  contactUs
+);
 
 module.exports = router;

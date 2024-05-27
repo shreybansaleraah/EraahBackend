@@ -60,6 +60,16 @@ const NGOSchema = new mongoose.Schema({
     unique: false,
     required: true,
   },
+  city: {
+    type: String,
+    unique: false,
+    required: true,
+  },
+  state: {
+    type: String,
+    unique: false,
+    required: true,
+  },
 });
 
 module.exports = mongoose.model("NGO", NGOSchema);

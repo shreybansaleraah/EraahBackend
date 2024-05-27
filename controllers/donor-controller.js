@@ -4,7 +4,10 @@ const Teacher = require("../models/teacherSchema.js");
 const otpModel = require("../models/otpModel.js");
 const AdminModel = require("../models/adminSchema.js");
 const { sendMail } = require("../utility/index.js");
-
+const crypto = require("crypto");
+const donationSchema = require("../models/donationSchema.js");
+const NGOSchema = require("../models/NGOSchema.js");
+const teacherSchema = require("../models/teacherSchema.js");
 const donorRegister = (req, res) => {
   // console.log("Donor registeration start");
   donorInfoSchema
@@ -110,6 +113,55 @@ const getDonorTeachers = (req, res) => {
       APIResponse.badRequest(res, err, {});
     });
 };
+const getNgoTeachers = (req, res) => {
+  donorInfoSchema
+    .findById(req.query.id)
+    .then((donor) => {
+      // console.log("donor");
+      // console.log(donor);
+      if (donor) {
+        Teacher.find({ school: req.query.ngoId })
+          .select("-password")
+          .populate({ path: "school", select: "-password" })
+          .populate("teachSubject", "subName")
+          .populate("teachSclass", "sclassName")
+          .then((teachers) => {
+            APIResponse.success(res, "success", teachers);
+          })
+          .catch((err) => {
+            APIResponse.badRequest(res, err, {});
+          });
+      } else {
+        APIResponse.unAuthorized(res, "unauthorized");
+      }
+    })
+    .catch((err) => {
+      APIResponse.badRequest(res, err, {});
+    });
+};
+const getNgoDetails = (req, res) => {
+  donorInfoSchema
+    .findById(req.query.id)
+    .then((donor) => {
+      // console.log("donor");
+      // console.log(donor);
+      if (donor) {
+        NGOSchema.findById(req.query.ngoId)
+          .select("-password")
+          .then((teachers) => {
+            APIResponse.success(res, "success", teachers);
+          })
+          .catch((err) => {
+            APIResponse.badRequest(res, err, {});
+          });
+      } else {
+        APIResponse.unAuthorized(res, "unauthorized");
+      }
+    })
+    .catch((err) => {
+      APIResponse.badRequest(res, err, {});
+    });
+};
 const generateOtp = (req, res) => {
   // logger.info("Generate OTP Service Start");
   const body = req.body;
@@ -189,6 +241,184 @@ const verifyDonorOtp = (req, res) => {
       APIResponse.badRequest(res, "something went wrong", {});
     });
 };
+const paymentSuccess = (req, res) => {
+  console.log("hello redirection");
+  donationSchema.findById(req.query.id).then((donationResponse) => {
+    donationSchema
+      .findOne({
+        donorId: donationResponse.donorId,
+        teacherId: donationResponse.teacherId,
+        success: true,
+      })
+      .then((response) => {
+        if (response) {
+          console.log("if condition");
+          donationSchema
+            .findByIdAndUpdate(response._id, {
+              donateAmount: (
+                parseInt(response.donateAmount ?? "") +
+                parseInt(donationResponse.donateAmount ?? "")
+              ).toString(),
+            })
+            .then((response) => {
+              donationSchema
+                .findByIdAndDelete(donationResponse)
+                .then((deleted) => {
+                  (response.donateAmount = (
+                    parseInt(response.donateAmount ?? "") +
+                    parseInt(donationResponse.donateAmount ?? "")
+                  ).toString()),
+                    // response.success = true;
+                    APIResponse.success(res, "success", response);
+                })
+                .catch((err) => {
+                  APIResponse.badRequest(res, "Invalid data", {});
+                });
+            })
+            .catch((e) => {
+              APIResponse.badRequest(res, "Invalid data", {});
+            });
+        } else {
+          console.log("else condition");
+          donationSchema
+            .findByIdAndUpdate(req.query.id, { success: true })
+            .then((response) => {
+              response.success = true;
+              APIResponse.success(res, "success", response);
+            })
+            .catch((e) => {
+              APIResponse.badRequest(res, "Invalid data", {});
+            });
+        }
+      })
+      .catch((e) => {
+        APIResponse.badRequest(res, "Invalid data", {});
+      });
+
+    // res.status(200).redirect("http://localhost:3000/explore");
+  });
+};
+
+const donate = (req, res) => {
+  const apiEndpoint = "https://test.payu.in/_payment";
+  const merchantKey = "W9LRwz";
+  const salt = "W9LRwz";
+  const productInfo = "Test Product";
+  const amount = "100.00";
+  const firstName = "John";
+  const email = "john@example.com";
+  const phone = "9999999999";
+  const txnId = "TXN" + Date.now();
+  const surl = "http://localhost:5000/donate/success";
+  const furl = "http://localhost:5000/donate/failed";
+
+  const params = {
+    key: merchantKey,
+    txnid: txnId,
+    amount: amount,
+    productinfo: productInfo,
+    firstname: firstName,
+    email: email,
+    phone: phone,
+    surl: surl,
+    furl: furl,
+  };
+  const hash = generatedHash(params, salt);
+  params["hash"] = hash;
+  console.log(hash);
+  const encodedParams = new URLSearchParams(params).toString();
+  const url = apiEndpoint + "?" + encodedParams;
+  console.log(url);
+  teacherSchema
+    .findById(req.body.teacherId)
+    .then((teacherData) => {
+      if (teacherData) {
+        donationSchema
+          .findOneAndDelete({ donorId: req.body.donorId, success: false })
+          .then((response) => {
+            donationSchema
+              .create({
+                donorId: req.body.donorId,
+                donateAmount: req.body.donateAmount,
+                teacherId: req.body.teacherId,
+                school: teacherData.school,
+              })
+              .then((donationRes) => {
+                res
+                  .status(200)
+                  .redirect(
+                    `http://localhost:5000/donate/success?id=${donationRes._id}`
+                  );
+              })
+              .catch((e) => {
+                console.log(e);
+                APIResponse.badRequest(res, "Invalid data", {});
+              });
+          })
+          .catch((e) => {
+            APIResponse.internalServerError(res, "something went wrong", {});
+          });
+      } else {
+        APIResponse.notFound(res, "teacher not found", {});
+      }
+    })
+    .catch((e) => {
+      console.log("e");
+      console.log(e);
+      APIResponse.badRequest(res, "Invalid data", {});
+    });
+  // res.status(200).redirect(url);
+};
+
+const donorHistory = (req, res) => {
+  donationSchema
+    .find({ donorId: req.query.id })
+    .populate({ path: "teacherId", select: "-password" })
+    .populate({ path: "school", select: "-password" })
+    .then((historyData) => {
+      APIResponse.success(res, "success", historyData);
+    })
+    .catch((Err) => {
+      APIResponse.badRequest(res, "Invalid data", {});
+    });
+};
+const donorNgos = (req, res) => {
+  donationSchema
+    .find({ donorId: req.query.id, success: true }, { school: 1 })
+    .populate({ path: "school", select: "-password" })
+    .then((data) => {
+      const uniqueData = data.filter(
+        (obj, index, self) =>
+          index === self.findIndex((t) => t.school._id === obj.school._id)
+      );
+      APIResponse.success(res, "success", uniqueData);
+    })
+    .catch((Err) => {
+      APIResponse.badRequest(res, "Invalid data", {});
+    });
+};
+
+function generatedHash(params, salt) {
+  let hashString =
+    params["key"] +
+    "|" +
+    params["txnid"] +
+    "|" +
+    params["amount"] +
+    "|" +
+    params["productinfo"] +
+    "|";
+  params["firstname"] +
+    "|" +
+    params["email"] +
+    "|" +
+    params["phone"] +
+    "|" +
+    params["surl"] +
+    "|";
+  params["furl"];
+  return crypto.createHash("sha512").update(hashString).digest("hex");
+}
 
 module.exports = {
   donorRegister,
@@ -199,4 +429,10 @@ module.exports = {
   verifyDonorOtp,
   getDonorInfo,
   getAllDonors,
+  donate,
+  donorHistory,
+  paymentSuccess,
+  donorNgos,
+  getNgoTeachers,
+  getNgoDetails,
 };

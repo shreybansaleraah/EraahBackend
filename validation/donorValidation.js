@@ -115,4 +115,28 @@ module.exports = {
       "any.required": "id is required",
     }),
   }),
+  donorGetTeachers: Joi.object({
+    id: Joi.string().required().messages({
+      "string.base": "id should be a string",
+      "any.required": "id is required",
+    }),
+    ngoId: Joi.string().required().messages({
+      "string.base": "NGO id should be a string",
+      "any.required": "NGO id is required",
+    }),
+  }),
+  donate: Joi.object({
+    donorId: Joi.string().required().messages({
+      "string.base": "id should be a string",
+      "any.required": "id is required",
+    }),
+    donateAmount: Joi.string().required().messages({
+      "string.base": "amount should be a string",
+      "any.required": "amount is required",
+    }),
+    teacherId: Joi.string().required().messages({
+      "string.base": "teacherId should be a string",
+      "any.required": "teacherId is required",
+    }),
+  }),
 };

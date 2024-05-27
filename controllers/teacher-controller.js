@@ -135,7 +135,7 @@ const makeTeacherHead = async (req, res) => {
 const teacherLogIn = async (req, res) => {
   try {
     let teacher = await Teacher.findOne({ email: req.body.email });
-    if (teacher) {
+    if (teacher && teacher?.classTeacher?.toLowerCase() !== "no") {
       const validated = await bcrypt.compare(
         req.body.password,
         teacher.password
