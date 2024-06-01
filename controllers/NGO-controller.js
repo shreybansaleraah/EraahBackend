@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const { APIResponse } = require("../utility/index.js");
 const NGO = require("../models/NGOSchema.js");
 const Sclass = require("../models/sclassSchema.js");
 const Student = require("../models/studentSchema.js");
@@ -6,8 +7,10 @@ const Teacher = require("../models/teacherSchema.js");
 const Subject = require("../models/subjectSchema.js");
 const Notice = require("../models/noticeSchema.js");
 const Complain = require("../models/complainSchema.js");
-const csv = require("csv-parser");
-const fs = require("fs");
+
+const teacherGallerySchema = require("../models/teacherGallerySchema.js");
+const studentGallerySchema = require("../models/studentGallerySchema.js");
+const ngoGalleryschema = require("../models/ngoGalleryschema.js");
 const NGORegister = async (req, res) => {
   try {
     const existingNGOByEmail = await NGO.findOne({ email: req.body.email });
@@ -201,6 +204,76 @@ const uploadBulkCsv = async (req, res) => {
     // console.log(error);
     res.status(400).json(error);
   }
+};
+
+const uploadPhotoGalleryForTeacher = async (req, res) => {
+  try {
+    const file = req.file;
+
+    if (!file) {
+      return APIResponse.badRequest(res, "No file uploaded", {});
+    }
+
+    const url =
+      "https://storage.googleapis.com/eraahstorage1/aa.png?GoogleAccessId=account1%40cryptic-yen-418706.iam.gserviceaccount.com&Expires=36429609600&Signature=LA3MUxylGy3aIFOuvc4SMozInqnqqnCpAxo%2FRpBAD7cPQHaN5aszHp7HTReXc7F4FicVzw3Nrlcs%2BeV5VIcWUQ%2BauMOEAy45Aak5NlumSrOHAv%2FJyyLg40bgf7udvccdfgrk3hVW3lZnQCFbcy9pTRKcTF51L5f%2F1%2Bb5zhPayYJWYAdteTwE7tjnVcvFG%2BKRDjKA626EtEBAzfKvav4FdeBwuVHRqWSmImiCsWVrnGsdNSSm5j5LxsrD3iPVD9qxSUkeFOsllkvd48PQNLeZLct65N4N7sQpf9ud4%2FzeGK2qS8cPsPdIEEcW0ojP61MARR0YYF%2FtvjsfyWGpfOs2Mw%3D%3D";
+    console.log("result is : ", url);
+
+    console.log("redirect is : ", encodeURIComponent(url));
+    if (req.body.studentId) {
+      await studentGallerySchema.create({
+        picUrl: url,
+        school: req.body.ngoId,
+        student: req.body.studentId,
+      });
+    } else if (req.body.teacherId) {
+      await teacherGallerySchema.create({
+        picUrl: url,
+        school: req.body.ngoId,
+        teacher: req.body.teacherId,
+      });
+    } else if (req.body.ngoId) {
+      await ngoGalleryschema.create({
+        picUrl: url,
+        school: req.body.ngoId,
+      });
+    } else {
+      return APIResponse.badRequest(res, "No file uploaded", {});
+    }
+    APIResponse.success(res, "File uploaded successfully", {});
+  } catch (error) {
+    console.error("Error uploading file:", error);
+
+    APIResponse.internalServerError(res, "something went wrong", {});
+  }
+};
+const getGallery = async (req, res) => {
+  var data = [];
+  if (req.body.studentId) {
+    data = await studentGallerySchema
+      .find({
+        school: req.body.ngoId,
+        student: req.body.studentId,
+      })
+      .populate({ path: "school", select: "-password" })
+      .populate({ path: "student", select: "-password" });
+  } else if (req.body.teacherId) {
+    data = await teacherGallerySchema
+      .find({
+        school: req.body.ngoId,
+        teacher: req.body.teacherId,
+      })
+      .populate({ path: "school", select: "-password" })
+      .populate({ path: "teacher", select: "-password" });
+  } else if (req.body.ngoId) {
+    data = await ngoGalleryschema
+      .find({
+        school: req.body.ngoId,
+      })
+      .populate({ path: "school", select: "-password" });
+  } else {
+    return APIResponse.badRequest(res, "Invalid data", {});
+  }
+  APIResponse.success(res, "success", data);
 };
 
 async function processStudentData(req) {
@@ -553,4 +626,6 @@ module.exports = {
   removeNgo,
   updateNGO,
   uploadBulkCsv,
+  uploadPhotoGalleryForTeacher,
+  getGallery,
 };

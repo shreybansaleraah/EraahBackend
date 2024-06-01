@@ -300,9 +300,12 @@ const paymentSuccess = (req, res) => {
 };
 
 const donate = (req, res) => {
+  // console.log(req);
+  console.log(req.body);
   const apiEndpoint = "https://test.payu.in/_payment";
-  const merchantKey = "W9LRwz";
-  const salt = "W9LRwz";
+  const merchantKey = "gtKFFx";
+  // const merchantKey = "W9LRwz";
+  const salt = "eCwWELxi";
   const productInfo = "Test Product";
   const amount = "100.00";
   const firstName = "John";
@@ -324,50 +327,51 @@ const donate = (req, res) => {
     furl: furl,
   };
   const hash = generatedHash(params, salt);
-  params["hash"] = hash;
+  params.hash = hash;
   console.log(hash);
   const encodedParams = new URLSearchParams(params).toString();
   const url = apiEndpoint + "?" + encodedParams;
   console.log(url);
-  teacherSchema
-    .findById(req.body.teacherId)
-    .then((teacherData) => {
-      if (teacherData) {
-        donationSchema
-          .findOneAndDelete({ donorId: req.body.donorId, success: false })
-          .then((response) => {
-            donationSchema
-              .create({
-                donorId: req.body.donorId,
-                donateAmount: req.body.donateAmount,
-                teacherId: req.body.teacherId,
-                school: teacherData.school,
-              })
-              .then((donationRes) => {
-                res
-                  .status(200)
-                  .redirect(
-                    `http://localhost:5000/donate/success?id=${donationRes._id}`
-                  );
-              })
-              .catch((e) => {
-                console.log(e);
-                APIResponse.badRequest(res, "Invalid data", {});
-              });
-          })
-          .catch((e) => {
-            APIResponse.internalServerError(res, "something went wrong", {});
-          });
-      } else {
-        APIResponse.notFound(res, "teacher not found", {});
-      }
-    })
-    .catch((e) => {
-      console.log("e");
-      console.log(e);
-      APIResponse.badRequest(res, "Invalid data", {});
-    });
-  // res.status(200).redirect(url);
+  return res.status(200).redirect(url);
+  // teacherSchema
+  //   .findById(req.body.teacherId)
+  //   .then((teacherData) => {
+  //     if (teacherData) {
+  //       donationSchema
+  //         .findOneAndDelete({ donorId: req.body.donorId, success: false })
+  //         .then((response) => {
+  //           donationSchema
+  //             .create({
+  //               donorId: req.body.donorId,
+  //               donateAmount: req.body.donateAmount,
+  //               teacherId: req.body.teacherId,
+  //               school: teacherData.school,
+  //             })
+  //             .then((donationRes) => {
+  //               res.status(200).redirect(url);
+  //               // res
+  //               //   .status(200)
+  //               //   .redirect(
+  //               //     `http://localhost:5000/donate/success?id=${donationRes._id}`
+  //               //   );
+  //             })
+  //             .catch((e) => {
+  //               console.log(e);
+  //               APIResponse.badRequest(res, "Invalid data", {});
+  //             });
+  //         })
+  //         .catch((e) => {
+  //           APIResponse.internalServerError(res, "something went wrong", {});
+  //         });
+  //     } else {
+  //       APIResponse.notFound(res, "teacher not found", {});
+  //     }
+  //   })
+  //   .catch((e) => {
+  //     console.log("e");
+  //     console.log(e);
+  //     APIResponse.badRequest(res, "Invalid data", {});
+  //   });
 };
 
 const donorHistory = (req, res) => {
@@ -400,23 +404,15 @@ const donorNgos = (req, res) => {
 
 function generatedHash(params, salt) {
   let hashString =
-    params["key"] +
+    params.key +
     "|" +
-    params["txnid"] +
+    params.txnid +
     "|" +
-    params["amount"] +
+    params.amount +
     "|" +
-    params["productinfo"] +
+    params.productinfo +
     "|";
-  params["firstname"] +
-    "|" +
-    params["email"] +
-    "|" +
-    params["phone"] +
-    "|" +
-    params["surl"] +
-    "|";
-  params["furl"];
+  params.firstname + "||||||" + salt;
   return crypto.createHash("sha512").update(hashString).digest("hex");
 }
 

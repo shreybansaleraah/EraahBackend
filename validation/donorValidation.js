@@ -115,6 +115,12 @@ module.exports = {
       "any.required": "id is required",
     }),
   }),
+  idRequire: Joi.object({
+    id: Joi.string().required().messages({
+      "string.base": "id should be a string",
+      "any.required": "id is required",
+    }),
+  }),
   donorGetTeachers: Joi.object({
     id: Joi.string().required().messages({
       "string.base": "id should be a string",

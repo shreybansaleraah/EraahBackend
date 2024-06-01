@@ -3,6 +3,7 @@ const Teacher = require("../models/teacherSchema.js");
 const Subject = require("../models/subjectSchema.js");
 const Student = require("../models/studentSchema.js");
 const SClass = require("../models/sclassSchema.js");
+const { APIResponse } = require("../utility/index.js");
 
 const teacherRegister = async (req, res) => {
   const {
@@ -337,6 +338,68 @@ const teacherAttendance = async (req, res) => {
   }
 };
 
+const getAllTeachers = (req, res) => {
+  Teacher.find({})
+    .populate({ path: "school", select: "-password" })
+    .populate("teachSubject", "subName")
+    .populate("teachSclass", "sclassName")
+    .then((teachers) => {
+      if (teachers.length > 0) {
+        let modifiedTeachers = teachers.map((teacher) => {
+          return { ...teacher._doc, password: undefined };
+        });
+        APIResponse.success(res, "success", modifiedTeachers);
+      } else {
+        APIResponse.success(res, "success", []);
+      }
+    })
+    .catch((err) => {
+      APIResponse.badRequest(res, err, {});
+    });
+};
+const getSelectedTeacherDetail = async (req, res) => {
+  try {
+    console.log(req.query.id);
+
+    const teacher = await Teacher.findById(req.query.id)
+      .populate("teachSubject", "subName sessions")
+      .populate("school", "schoolName")
+      .populate("teachSclass", "sclassName");
+
+    if (!teacher) {
+      // return res.send({ message: "No teacher found" });
+      APIResponse.success(res, "No teacher found", []);
+      return;
+    }
+
+    // Create a new object or use .lean() to avoid modifying the original document
+    const teacherDetails = { ...teacher._doc };
+    teacherDetails.password = undefined;
+
+    let students = [];
+    if (teacher.teachSclass) {
+      // Assuming teachSclass is an array, so we need to handle each class separately
+      for (const sclass of teacher.teachSclass) {
+        const classStudents = await Student.find({
+          school: teacher.school.id,
+          sclassName: sclass.id,
+        }).populate("sclassName", "sclassName");
+        students = students.concat(classStudents);
+      }
+    }
+
+    // res.send({ ...teacherDetails, studentsList: students });
+    APIResponse.success(res, "success", {
+      ...teacherDetails,
+      studentsList: students,
+    });
+  } catch (err) {
+    console.error(err);
+    // res.status(500).json({ error: "Internal Server Error" });
+    APIResponse.internalServerError(res, "Internal Server Error", {});
+  }
+};
+
 module.exports = {
   teacherRegister,
   teacherLogIn,
@@ -348,4 +411,6 @@ module.exports = {
   deleteTeachersByClass,
   teacherAttendance,
   makeTeacherHead,
+  getAllTeachers,
+  getSelectedTeacherDetail,
 };

@@ -2,6 +2,7 @@ const router = require("express").Router();
 const multer = require("multer");
 const { celebrate, Segments } = require("celebrate");
 const validation = require("../validation/donorValidation.js");
+const galleryValidation = require("../validation/galleryValidation.js");
 const contactValidation = require("../validation/contactValidation.js");
 // const { NGORegister, NGOLogIn, deleteNGO, getNGODetail, updateNGO } = require('../controllers/NGO-controller.js');
 
@@ -19,6 +20,8 @@ const {
   removeNgo,
   updateNGO,
   uploadBulkCsv,
+  uploadPhotoGalleryForTeacher,
+  getGallery,
 } = require("../controllers/NGO-controller.js");
 
 const {
@@ -78,6 +81,8 @@ const {
   updateTeacherSubject,
   teacherAttendance,
   makeTeacherHead,
+  getAllTeachers,
+  getSelectedTeacherDetail,
 } = require("../controllers/teacher-controller.js");
 const {
   facilityCreate,
@@ -189,12 +194,12 @@ router.get(
   }),
   getDonorInfo
 );
-router.post(
+router.get(
   "/donate",
-  celebrate({
-    [Segments.BODY]: validation.donate,
-  }),
-  // [],
+  // celebrate({
+  //   [Segments.BODY]: validation.donate,
+  // }),
+  [],
   donate
 );
 router.get(
@@ -227,16 +232,36 @@ router.post("/NGOReg", NGORegister);
 router.post("/NGOLogin", NGOLogIn);
 router.post("/removeNgo/:id", removeNgo);
 router.post("/updateNgo", updateNGO);
+router.get("/api/getTeachers", getAllTeachers);
+router.get(
+  "/api/getSelectedTeacherDetails",
+  celebrate({
+    [Segments.QUERY]: validation.idRequire,
+  }),
+  getSelectedTeacherDetail
+);
 
 router.get("/allNgo", getAllNgo);
 router.get("/NGO/:id", getNGODetail);
 router.post("/NGO/uploadCsv/:id", upload.single("csvFile"), uploadBulkCsv);
+router.post(
+  "/NGO/uploadPhoto",
+  upload.single("img"),
+  uploadPhotoGalleryForTeacher
+);
 // router.delete("/NGO/:id", deleteNGO)
 
 // router.put("/NGO/:id", updateNGO)
 
 // Student
 
+router.post(
+  "/NGO/getGallery",
+  celebrate({
+    [Segments.BODY]: galleryValidation.getGalleryFields,
+  }),
+  getGallery
+);
 router.post("/StudentReg", studentRegister);
 router.post("/StudentLogin", studentLogIn);
 
@@ -334,7 +359,7 @@ router.delete("/Subjects/:id", deleteSubjects);
 router.delete("/SubjectsClass/:id", deleteSubjectsByClass);
 
 // connect us
-router.delete(
+router.post(
   "/contact",
   celebrate({
     [Segments.BODY]: contactValidation.contactFields,
