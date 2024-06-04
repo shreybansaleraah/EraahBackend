@@ -1,8 +1,8 @@
 const { Storage } = require("@google-cloud/storage");
 
 const storage = new Storage({
-  projectId: "cryptic-yen-418706",
-  keyFilename: "eraahProject.json",
+  projectId: process.env.projectId,
+  keyFilename: process.env.keyFilename,
 });
 
 const bucketName = "eraahstorage1";
