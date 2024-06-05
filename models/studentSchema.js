@@ -11,23 +11,27 @@ const studentSchema = new mongoose.Schema({
   },
   motherName: {
     type: String,
-    required: true,
+    required: false,
+    default: "Not Available",
   },
   fatherName: {
     type: String,
-    required: true,
+    required: false,
+    default: "Not Available",
   },
   fatherOcc: {
     type: String,
-    required: true,
+    required: false,
+    default: "Not Available",
   },
   motherOcc: {
     type: String,
-    required: true,
+    required: false,
+    default: "Not Available",
   },
   photoUrl: {
     type: String,
-    required: false,
+    required: true,
     default: "",
   },
 

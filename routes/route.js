@@ -262,7 +262,7 @@ router.post(
   }),
   getGallery
 );
-router.post("/StudentReg", studentRegister);
+router.post("/StudentReg", upload.single("photo"), studentRegister);
 router.post("/StudentLogin", studentLogIn);
 
 router.get("/Students/:id", getStudents);
@@ -289,7 +289,7 @@ router.put("/RemoveStudentAtten/:id", removeStudentAttendance);
 
 // Teacher
 
-router.post("/TeacherReg", teacherRegister);
+router.post("/TeacherReg", upload.single("photo"), teacherRegister);
 router.post("/TeacherLogin", teacherLogIn);
 router.post("/changeClassTeacher", makeTeacherHead);
 

@@ -6,50 +6,60 @@ const Sclass = require("../models/sclassSchema.js");
 const fs = require("fs");
 const csv = require("csv-parser");
 const NGOSchema = require("../models/NGOSchema.js");
+const { uploadImage, APIResponse } = require("../utility/index.js");
 
-const studentRegister = async (req, res) => {
+const studentRegister = (req, res) => {
   try {
     // const salt = await bcrypt.genSalt(10);
     // const hashedPass = await bcrypt.hash(req.body.password, salt);
+    uploadImage.uploadImage(
+      req.file,
+      async (callback) => {
+        const existingStudent = await Student.findOne({
+          rollNum: req.body.rollNum,
+          school: req.body.NGOID,
+          sclassName: req.body.sclassName,
+        });
 
-    const existingStudent = await Student.findOne({
-      rollNum: req.body.rollNum,
-      school: req.body.NGOID,
-      sclassName: req.body.sclassName,
-    });
+        if (existingStudent) {
+          res.send({ message: "Roll Number already exists" });
+        } else {
+          const className = await Sclass.findById(req.body.sclassName);
+          // console.log("find class ", className);
+          // console.log("find class ", className.sclassName);
+          // console.log("find class ", req.body.NGOID);
+          const classTeacher = await Teacher.findOne({
+            classTeacher: className.sclassName,
+            school: req.body.NGOID,
+          });
+          // console.log("find class teacher");
+          // console.log(classTeacher);
+          const student = new Student({
+            ...req.body,
+            school: req.body.NGOID,
+            photoUrl: callback,
+          });
 
-    if (existingStudent) {
-      res.send({ message: "Roll Number already exists" });
-    } else {
-      const className = await Sclass.findById(req.body.sclassName);
-      // console.log("find class ", className);
-      // console.log("find class ", className.sclassName);
-      // console.log("find class ", req.body.NGOID);
-      const classTeacher = await Teacher.findOne({
-        classTeacher: className.sclassName,
-        school: req.body.NGOID,
-      });
-      // console.log("find class teacher");
-      // console.log(classTeacher);
-      const student = new Student({
-        ...req.body,
-        school: req.body.NGOID,
-      });
+          if (classTeacher) {
+            // console.log("inside class teacher");
+            student.classTeacher = classTeacher._id;
+            // console.log("exiting class teacher");
+          }
+          let result = await student.save();
+          // // console.log(result);
 
-      if (classTeacher) {
-        // console.log("inside class teacher");
-        student.classTeacher = classTeacher._id;
-        // console.log("exiting class teacher");
+          // // console.log(result.populate("sclassName"));
+
+          result.password = undefined;
+          res.send(result);
+        }
+      },
+      (onError) => {
+        APIResponse.badRequest(res, "Invalid file", {});
       }
-      let result = await student.save();
-      // // console.log(result);
-
-      // // console.log(result.populate("sclassName"));
-
-      result.password = undefined;
-      res.send(result);
-    }
+    );
   } catch (err) {
+    console.log(err);
     res.status(500).json(err);
   }
 };

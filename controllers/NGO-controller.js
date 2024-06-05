@@ -11,6 +11,7 @@ const Complain = require("../models/complainSchema.js");
 const teacherGallerySchema = require("../models/teacherGallerySchema.js");
 const studentGallerySchema = require("../models/studentGallerySchema.js");
 const ngoGalleryschema = require("../models/ngoGalleryschema.js");
+const { uploadImage } = require("../utility/uploadImage.js");
 const NGORegister = async (req, res) => {
   try {
     const existingNGOByEmail = await NGO.findOne({ email: req.body.email });
@@ -213,33 +214,36 @@ const uploadPhotoGalleryForTeacher = async (req, res) => {
     if (!file) {
       return APIResponse.badRequest(res, "No file uploaded", {});
     }
-
-    const url =
-      "https://storage.googleapis.com/eraahstorage1/aa.png?GoogleAccessId=account1%40cryptic-yen-418706.iam.gserviceaccount.com&Expires=36429609600&Signature=LA3MUxylGy3aIFOuvc4SMozInqnqqnCpAxo%2FRpBAD7cPQHaN5aszHp7HTReXc7F4FicVzw3Nrlcs%2BeV5VIcWUQ%2BauMOEAy45Aak5NlumSrOHAv%2FJyyLg40bgf7udvccdfgrk3hVW3lZnQCFbcy9pTRKcTF51L5f%2F1%2Bb5zhPayYJWYAdteTwE7tjnVcvFG%2BKRDjKA626EtEBAzfKvav4FdeBwuVHRqWSmImiCsWVrnGsdNSSm5j5LxsrD3iPVD9qxSUkeFOsllkvd48PQNLeZLct65N4N7sQpf9ud4%2FzeGK2qS8cPsPdIEEcW0ojP61MARR0YYF%2FtvjsfyWGpfOs2Mw%3D%3D";
-    console.log("result is : ", url);
-
-    console.log("redirect is : ", encodeURIComponent(url));
-    if (req.body.studentId) {
-      await studentGallerySchema.create({
-        picUrl: url,
-        school: req.body.ngoId,
-        student: req.body.studentId,
-      });
-    } else if (req.body.teacherId) {
-      await teacherGallerySchema.create({
-        picUrl: url,
-        school: req.body.ngoId,
-        teacher: req.body.teacherId,
-      });
-    } else if (req.body.ngoId) {
-      await ngoGalleryschema.create({
-        picUrl: url,
-        school: req.body.ngoId,
-      });
-    } else {
-      return APIResponse.badRequest(res, "No file uploaded", {});
-    }
-    APIResponse.success(res, "File uploaded successfully", {});
+    uploadImage(
+      file,
+      async (url) => {
+        console.log("redirect is : ", encodeURIComponent(url));
+        if (req.body.studentId) {
+          await studentGallerySchema.create({
+            picUrl: url,
+            school: req.body.ngoId,
+            student: req.body.studentId,
+          });
+        } else if (req.body.teacherId) {
+          await teacherGallerySchema.create({
+            picUrl: url,
+            school: req.body.ngoId,
+            teacher: req.body.teacherId,
+          });
+        } else if (req.body.ngoId) {
+          await ngoGalleryschema.create({
+            picUrl: url,
+            school: req.body.ngoId,
+          });
+        } else {
+          return APIResponse.badRequest(res, "No file uploaded", {});
+        }
+        APIResponse.success(res, "File uploaded successfully", {});
+      },
+      (onError) => {
+        APIResponse.badRequest(res, "Invalid file", {});
+      }
+    );
   } catch (error) {
     console.error("Error uploading file:", error);
 
@@ -299,11 +303,12 @@ async function processStudentData(req) {
       name !== undefined &&
       name.length !== 0 &&
       !className &&
-      !rollNum &&
-      !fatherName &&
-      !fatherOcc &&
-      !motherName &&
-      !motherOcc.replace(/[\r\n]/g, "")
+      !rollNum.replace(/[\r\n]/g, "")
+      //  &&
+      // !fatherName &&
+      // !fatherOcc &&
+      // !motherName &&
+      // !motherOcc.replace(/[\r\n]/g, "")
     ) {
       return { message: "Incorrect data, field are missing" };
     }

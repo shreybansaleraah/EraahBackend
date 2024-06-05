@@ -3,7 +3,8 @@ const Teacher = require("../models/teacherSchema.js");
 const Subject = require("../models/subjectSchema.js");
 const Student = require("../models/studentSchema.js");
 const SClass = require("../models/sclassSchema.js");
-const { APIResponse } = require("../utility/index.js");
+
+const { uploadImage, APIResponse } = require("../utility/index.js");
 
 const teacherRegister = async (req, res) => {
   const {
@@ -63,47 +64,61 @@ const teacherRegister = async (req, res) => {
 
       return res.send(result);
     } else {
-      const teacher = new Teacher({
-        name,
-        email,
-        password: hashedPass,
-        aadhar,
-        pan,
-        role,
-        school,
-        teachSubject,
-        teachSclass,
-      });
-      let result = await teacher.save();
-      await Subject.findByIdAndUpdate(teachSubject, { teacher: teacher._id });
+      uploadImage.uploadImage(
+        req.file,
+        async (callback) => {
+          const teacher = new Teacher({
+            name,
+            email,
+            password: hashedPass,
+            aadhar,
+            pan,
+            role,
+            school,
+            teachSubject,
+            teachSclass,
+            photoUrl: callback,
+          });
+          let result = await teacher.save();
+          await Subject.findByIdAndUpdate(teachSubject, {
+            teacher: teacher._id,
+          });
 
-      if (classTeacher) {
-        // // console.log("classTeacher is getting yes");
-        await Student.updateMany(
-          { sclassName: teachSclass },
-          { $set: { classTeacher: result._id } }
-        );
-        const className = await SClass.findOne({ _id: teachSclass, school });
-        // // console.log(result._id);
-        // // console.log(className);
-        // // console.log(teachSclass);
-        // // console.log(school);
-        await Teacher.findOneAndUpdate(
-          {
-            classTeacher: className.sclassName,
-          },
-          { classTeacher: "NO" }
-        );
+          if (classTeacher) {
+            // // console.log("classTeacher is getting yes");
+            await Student.updateMany(
+              { sclassName: teachSclass },
+              { $set: { classTeacher: result._id } }
+            );
+            const className = await SClass.findOne({
+              _id: teachSclass,
+              school,
+            });
+            // // console.log(result._id);
+            // // console.log(className);
+            // // console.log(teachSclass);
+            // // console.log(school);
+            await Teacher.findOneAndUpdate(
+              {
+                classTeacher: className.sclassName,
+              },
+              { classTeacher: "NO" }
+            );
 
-        // // console.log(className.sclassName);
-        var resv = await Teacher.findByIdAndUpdate(result._id, {
-          classTeacher: className.sclassName,
-        });
-        // console.log(resv);
-      }
+            // // console.log(className.sclassName);
+            var resv = await Teacher.findByIdAndUpdate(result._id, {
+              classTeacher: className.sclassName,
+            });
+            // console.log(resv);
+          }
 
-      result.password = undefined;
-      return res.send(result);
+          result.password = undefined;
+          return res.send(result);
+        },
+        (onError) => {
+          APIResponse.badRequest(res, "Invalid file", {});
+        }
+      );
     }
   } catch (err) {
     console.error(err); // Log the error for debugging

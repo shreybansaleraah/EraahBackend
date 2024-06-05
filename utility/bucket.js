@@ -1,12 +1,13 @@
 const { Storage } = require("@google-cloud/storage");
 
 const storage = new Storage({
-  projectId: process.env.projectId,
-  keyFilename: process.env.keyFilename,
+  projectId: "cryptic-yen-418706",
+  keyFilename: "eraahProject.json",
 });
 
 const bucketName = "eraahstorage1";
 const bucket = storage.bucket(bucketName);
+console.log("bucket");
 module.exports = {
   bucket,
 };
