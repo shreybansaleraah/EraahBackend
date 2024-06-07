@@ -243,69 +243,74 @@ const verifyDonorOtp = (req, res) => {
 };
 const paymentSuccess = (req, res) => {
   console.log("hello redirection");
-  donationSchema.findById(req.query.id).then((donationResponse) => {
-    donationSchema
-      .findOne({
-        donorId: donationResponse.donorId,
-        teacherId: donationResponse.teacherId,
-        success: true,
-      })
-      .then((response) => {
-        if (response) {
-          console.log("if condition");
-          donationSchema
-            .findByIdAndUpdate(response._id, {
-              donateAmount: (
-                parseInt(response.donateAmount ?? "") +
-                parseInt(donationResponse.donateAmount ?? "")
-              ).toString(),
-            })
-            .then((response) => {
-              donationSchema
-                .findByIdAndDelete(donationResponse)
-                .then((deleted) => {
-                  (response.donateAmount = (
-                    parseInt(response.donateAmount ?? "") +
-                    parseInt(donationResponse.donateAmount ?? "")
-                  ).toString()),
-                    // response.success = true;
-                    APIResponse.success(res, "success", response);
-                })
-                .catch((err) => {
-                  APIResponse.badRequest(res, "Invalid data", {});
-                });
-            })
-            .catch((e) => {
-              APIResponse.badRequest(res, "Invalid data", {});
-            });
-        } else {
-          console.log("else condition");
-          donationSchema
-            .findByIdAndUpdate(req.query.id, { success: true })
-            .then((response) => {
-              response.success = true;
-              APIResponse.success(res, "success", response);
-            })
-            .catch((e) => {
-              APIResponse.badRequest(res, "Invalid data", {});
-            });
-        }
-      })
-      .catch((e) => {
-        APIResponse.badRequest(res, "Invalid data", {});
-      });
+  // console.log(req.body);
+  // console.log("req is given below");
+  // console.log(req);
+  res.send(req);
+  return console.log(req.body);
+  // donationSchema.findById(req.query.id).then((donationResponse) => {
+  //   donationSchema
+  //     .findOne({
+  //       donorId: donationResponse.donorId,
+  //       teacherId: donationResponse.teacherId,
+  //       success: true,
+  //     })
+  //     .then((response) => {
+  //       if (response) {
+  //         console.log("if condition");
+  //         donationSchema
+  //           .findByIdAndUpdate(response._id, {
+  //             donateAmount: (
+  //               parseInt(response.donateAmount ?? "") +
+  //               parseInt(donationResponse.donateAmount ?? "")
+  //             ).toString(),
+  //           })
+  //           .then((response) => {
+  //             donationSchema
+  //               .findByIdAndDelete(donationResponse)
+  //               .then((deleted) => {
+  //                 (response.donateAmount = (
+  //                   parseInt(response.donateAmount ?? "") +
+  //                   parseInt(donationResponse.donateAmount ?? "")
+  //                 ).toString()),
+  //                   // response.success = true;
+  //                   APIResponse.success(res, "success", response);
+  //               })
+  //               .catch((err) => {
+  //                 APIResponse.badRequest(res, "Invalid data", {});
+  //               });
+  //           })
+  //           .catch((e) => {
+  //             APIResponse.badRequest(res, "Invalid data", {});
+  //           });
+  //       } else {
+  //         console.log("else condition");
+  //         donationSchema
+  //           .findByIdAndUpdate(req.query.id, { success: true })
+  //           .then((response) => {
+  //             response.success = true;
+  //             APIResponse.success(res, "success", response);
+  //           })
+  //           .catch((e) => {
+  //             APIResponse.badRequest(res, "Invalid data", {});
+  //           });
+  //       }
+  //     })
+  //     .catch((e) => {
+  //       APIResponse.badRequest(res, "Invalid data", {});
+  //     });
 
-    // res.status(200).redirect("http://localhost:3000/explore");
-  });
+  //   // res.status(200).redirect("http://localhost:3000/explore");
+  // });
 };
 
 const donate = (req, res) => {
-  // console.log(req);
-  console.log(req.body);
+  console.log("req");
+  // console.log(req.body);
   const apiEndpoint = "https://test.payu.in/_payment";
-  const merchantKey = "gtKFFx";
-  // const merchantKey = "W9LRwz";
-  const salt = "eCwWELxi";
+
+  const merchantKey = "Dku6RM";
+  const merchantSalt = "zBdjwrjt7UY27WMdAfV2ZE3EFfoZI9UE";
   const productInfo = "Test Product";
   const amount = "100.00";
   const firstName = "John";
@@ -317,7 +322,7 @@ const donate = (req, res) => {
 
   const params = {
     key: merchantKey,
-    txnid: txnId,
+    txnid: "txn123" || txnId,
     amount: amount,
     productinfo: productInfo,
     firstname: firstName,
@@ -325,14 +330,41 @@ const donate = (req, res) => {
     phone: phone,
     surl: surl,
     furl: furl,
+    udf1: "",
+    udf2: "",
+    udf3: "",
+    udf4: "",
+    udf5: "",
+    service_provider: "payu_paisa",
   };
-  const hash = generatedHash(params, salt);
+  const hash = generatedHash(params, merchantSalt);
   params.hash = hash;
   console.log(hash);
-  const encodedParams = new URLSearchParams(params).toString();
-  const url = apiEndpoint + "?" + encodedParams;
-  console.log(url);
-  return res.status(200).redirect(url);
+  const payuForm = `
+        <html>
+        <body>
+            <form id="payuForm" method="post" action="https://test.payu.in/_payment">
+                <input type="hidden" name="key" value="${params.key}" />
+                <input type="hidden" name="txnid" value="${params.txnid}" />
+                <input type="hidden" name="amount" value="${params.amount}" />
+                <input type="hidden" name="productinfo" value="${params.productinfo}" />
+                <input type="hidden" name="firstname" value="${params.firstname}" />
+                <input type="hidden" name="email" value="${params.email}" />
+                <input type="hidden" name="phone" value="${params.phone}" />
+                <input type="hidden" name="surl" value="${params.surl}" />
+                <input type="hidden" name="furl" value="${params.furl}" />
+                <input type="hidden" name="hash" value="${params.hash}" />
+                <input type="hidden" name="service_provider" value="${params.service_provider}" />
+            </form>
+            <script type="text/javascript">
+                document.getElementById('payuForm').submit();
+            </script>
+        </body>
+        </html>
+    `;
+
+  res.send(payuForm);
+  // return res.status(200).redirect(url);
   // teacherSchema
   //   .findById(req.body.teacherId)
   //   .then((teacherData) => {
@@ -373,6 +405,14 @@ const donate = (req, res) => {
   //     APIResponse.badRequest(res, "Invalid data", {});
   //   });
 };
+const webhookSuccess = (req, res) => {
+  try {
+    sendMail("", req.body.toString(), "deepanshus094@gmail.com");
+    APIResponse.success(res, "success", {});
+  } catch (e) {
+    APIResponse.success(res, "success", {});
+  }
+};
 
 const donorHistory = (req, res) => {
   donationSchema
@@ -403,16 +443,9 @@ const donorNgos = (req, res) => {
 };
 
 function generatedHash(params, salt) {
-  let hashString =
-    params.key +
-    "|" +
-    params.txnid +
-    "|" +
-    params.amount +
-    "|" +
-    params.productinfo +
-    "|";
-  params.firstname + "||||||" + salt;
+  let hashString = `${params.key}|${params.txnid}|${params.amount}|${params.productinfo}|${params.firstname}|${params.email}|${params.udf1}|${params.udf2}|${params.udf3}|${params.udf4}|${params.udf5}||||||${salt}`;
+
+  console.log(hashString);
   return crypto.createHash("sha512").update(hashString).digest("hex");
 }
 
@@ -431,4 +464,5 @@ module.exports = {
   donorNgos,
   getNgoTeachers,
   getNgoDetails,
+  webhookSuccess,
 };

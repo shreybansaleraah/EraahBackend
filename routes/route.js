@@ -108,6 +108,7 @@ const {
   donorNgos,
   getNgoTeachers,
   getNgoDetails,
+  webhookSuccess,
 } = require("../controllers/donor-controller.js");
 const { contactUs } = require("../controllers/connectUs-controller.js");
 const { contactFields } = require("../validation/contactValidation.js");
@@ -202,12 +203,21 @@ router.get(
   [],
   donate
 );
-router.get(
+router.post(
   "/donate/success",
-  celebrate({
-    [Segments.QUERY]: validation.donorId,
-  }),
+  // celebrate({
+  //   [Segments.QUERY]: validation.donorId,
+  // }),
+  [],
   paymentSuccess
+);
+router.post(
+  "/payWebhook",
+  // celebrate({
+  //   [Segments.QUERY]: validation.donorId,
+  // }),
+  [],
+  webhookSuccess
 );
 router.get(
   "/donorHistory",
