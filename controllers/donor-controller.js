@@ -8,6 +8,8 @@ const crypto = require("crypto");
 const donationSchema = require("../models/donationSchema.js");
 const NGOSchema = require("../models/NGOSchema.js");
 const teacherSchema = require("../models/teacherSchema.js");
+// const dotenv = require("dotenv");
+// dotenv.config();
 const donorRegister = (req, res) => {
   // console.log("Donor registeration start");
   donorInfoSchema
@@ -246,61 +248,82 @@ const paymentSuccess = (req, res) => {
   // console.log(req.body);
   // console.log("req is given below");
   // console.log(req);
-  res.send(req);
-  return console.log(req.body);
-  // donationSchema.findById(req.query.id).then((donationResponse) => {
-  //   donationSchema
-  //     .findOne({
-  //       donorId: donationResponse.donorId,
-  //       teacherId: donationResponse.teacherId,
-  //       success: true,
-  //     })
-  //     .then((response) => {
-  //       if (response) {
-  //         console.log("if condition");
-  //         donationSchema
-  //           .findByIdAndUpdate(response._id, {
-  //             donateAmount: (
-  //               parseInt(response.donateAmount ?? "") +
-  //               parseInt(donationResponse.donateAmount ?? "")
-  //             ).toString(),
-  //           })
-  //           .then((response) => {
-  //             donationSchema
-  //               .findByIdAndDelete(donationResponse)
-  //               .then((deleted) => {
-  //                 (response.donateAmount = (
-  //                   parseInt(response.donateAmount ?? "") +
-  //                   parseInt(donationResponse.donateAmount ?? "")
-  //                 ).toString()),
-  //                   // response.success = true;
-  //                   APIResponse.success(res, "success", response);
-  //               })
-  //               .catch((err) => {
-  //                 APIResponse.badRequest(res, "Invalid data", {});
-  //               });
-  //           })
-  //           .catch((e) => {
-  //             APIResponse.badRequest(res, "Invalid data", {});
-  //           });
-  //       } else {
-  //         console.log("else condition");
-  //         donationSchema
-  //           .findByIdAndUpdate(req.query.id, { success: true })
-  //           .then((response) => {
-  //             response.success = true;
-  //             APIResponse.success(res, "success", response);
-  //           })
-  //           .catch((e) => {
-  //             APIResponse.badRequest(res, "Invalid data", {});
-  //           });
-  //       }
-  //     })
-  //     .catch((e) => {
-  //       APIResponse.badRequest(res, "Invalid data", {});
-  //     });
+  // res.send(req);
+  // return console.log(req.body);
+  if (req.body.status === "success") {
+    donationSchema
+      .findOneAndUpdate({ txnId: req.body.txnid }, { success: true })
+      .then((response) => {
+        response.success = true;
+        // APIResponse.success(res, "success", response);
+        APIResponse.success(res, "success", req.body);
+      })
+      .catch((e) => {
+        APIResponse.badRequest(res, "Invalid data", {});
+      });
+  }
+  // donationSchema
+  //   .findOne({
+  //     name: req.body.firstname,
+  //     email: req.body.email,
+  //     phoneNumber: req.body.phone,
+  //   }) .then((donationResponse) => {
 
-  //   // res.status(200).redirect("http://localhost:3000/explore");
+  // donationSchema
+  //   .findOne({
+  //     donorId: donationResponse.donorId,
+  //     teacherId: donationResponse.teacherId,
+  //     success: true,
+  //   })
+  //   .then((response) => {
+  //     if (response) {
+  //       console.log("if condition");
+  //       donationSchema
+  //         .findByIdAndUpdate(response._id, {
+  //           donateAmount: (
+  //             parseInt(response.donateAmount ?? "") +
+  //             parseInt(donationResponse.donateAmount ?? "")
+  //           ).toString(),
+  //         })
+  //         .then((response) => {
+  //           donationSchema
+  //             .findByIdAndDelete(donationResponse)
+  //             .then((deleted) => {
+  //               (response.donateAmount = (
+  //                 parseInt(response.donateAmount ?? "") +
+  //                 parseInt(donationResponse.donateAmount ?? "")
+  //               ).toString()),
+  //                 // response.success = true;
+  //                 APIResponse.success(res, "success", response);
+  //             })
+  //             .catch((err) => {
+  //               APIResponse.badRequest(res, "Invalid data", {});
+  //             });
+  //         })
+  //         .catch((e) => {
+  //           APIResponse.badRequest(res, "Invalid data", {});
+  //         });
+  //     } else {
+  //       console.log("else condition");
+  //       donationSchema
+  //         .findOneAndUpdate(
+  //           { _id: donationResponse._id, txnId: req.body.txnid },
+  //           { success: true }
+  //         )
+  //         .then((response) => {
+  //           response.success = true;
+  //           APIResponse.success(res, "success", response);
+  //         })
+  //         .catch((e) => {
+  //           APIResponse.badRequest(res, "Invalid data", {});
+  //         });
+  //     }
+  //   })
+  //   .catch((e) => {
+  //     APIResponse.badRequest(res, "Invalid data", {});
+  //   });
+
+  // res.status(200).redirect("http://localhost:3000/explore");
   // });
 };
 
@@ -309,105 +332,159 @@ const donate = (req, res) => {
   // console.log(req.body);
   const apiEndpoint = "https://test.payu.in/_payment";
 
-  const merchantKey = "Dku6RM";
-  const merchantSalt = "zBdjwrjt7UY27WMdAfV2ZE3EFfoZI9UE";
-  const productInfo = "Test Product";
-  const amount = "100.00";
-  const firstName = "John";
-  const email = "john@example.com";
-  const phone = "9999999999";
-  const txnId = "TXN" + Date.now();
-  const surl = "http://localhost:5000/donate/success";
-  const furl = "http://localhost:5000/donate/failed";
+  // const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+  // console.log(hashString);
 
-  const params = {
-    key: merchantKey,
-    txnid: "txn123" || txnId,
-    amount: amount,
-    productinfo: productInfo,
-    firstname: firstName,
-    email: email,
-    phone: phone,
-    surl: surl,
-    furl: furl,
-    udf1: "",
-    udf2: "",
-    udf3: "",
-    udf4: "",
-    udf5: "",
-    service_provider: "payu_paisa",
+  const bankAccount1 = {
+    beneficiaryAccount: "78790100020247",
+    ifscCode: "BARB0VJMBAL",
+    beneficiaryName: "Deepanshu",
   };
-  const hash = generatedHash(params, merchantSalt);
-  params.hash = hash;
-  console.log(hash);
-  const payuForm = `
+  const bankAccount2 = {
+    beneficiaryAccount: "78790100020247",
+    ifscCode: "BARB0VJMBAL",
+    beneficiaryName: "Deepanshu",
+  };
+
+  // account2: {
+  //   amount: "20.00",
+  //   ...bankAccount2,
+  // },
+
+  // <input type="hidden" name="service_provider" value="${payuParams.service_provider}" />
+
+  // res.send(payuForm);
+  // return res.status(200).redirect(url);
+  donorInfoSchema
+    .findById(req.body.donorId)
+    .then((donorData) => {
+      const amount = req.body.donateAmount;
+      const productinfo = "Live Product";
+      const firstname = donorData.name;
+      const email = donorData.email;
+      const phone = donorData.phoneNumber;
+      const surl = "http://localhost:5000/donate/success";
+      const furl = "http://localhost:5000/donate/failed";
+      const udf1 = "";
+      const udf2 = "";
+      const udf3 = "";
+      const udf4 = "";
+      const udf5 = "";
+
+      teacherSchema
+        .findById(req.body.teacherId)
+        .then((teacherData) => {
+          if (teacherData) {
+            donationSchema
+              .findOneAndDelete({ donorId: req.body.donorId, success: false })
+              .then((response) => {
+                const txnid = "txn" + new Date().getTime() + req.body.donorId;
+                // const txnid = "txn" + "123";
+                const hashString = `${process.env.merchantKeyTest}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|${udf1}|${udf2}|${udf3}|${udf4}|${udf5}||||||${process.env.merchantSaltTest}`;
+                const hash = crypto
+                  .createHash("sha512")
+                  .update(hashString, "utf8")
+                  .digest("hex");
+
+                donationSchema
+                  .create({
+                    donorId: req.body.donorId,
+                    donateAmount: req.body.donateAmount,
+                    txnId: txnid,
+                    teacherId: req.body.teacherId,
+                    school: teacherData.school,
+                  })
+                  .then((donationRes) => {
+                    const payuParams = {
+                      key: process.env.merchantKeyTest,
+                      txnid: txnid,
+                      amount: amount,
+                      productinfo: productinfo,
+                      firstname: firstname,
+                      email: email,
+                      phone: phone,
+                      surl: surl,
+                      furl: furl,
+                      hash: hash,
+                      // hash: "616826e3d8b6d1bafc6f2108c8c110c29c3246f4abfc408e72e378e9bd4ef661ebad8cd72c1aa38d1435f41d0565813f02b8cb60ad9b5d294a8390bb5673cb21",
+                      service_provider: "payu_paisa",
+                      split_info: JSON.stringify({
+                        account1: {
+                          amount: "10.00",
+                          ...bankAccount1,
+                        },
+                      }),
+                    };
+                    const payuForm = `
         <html>
         <body>
-            <form id="payuForm" method="post" action="https://test.payu.in/_payment">
-                <input type="hidden" name="key" value="${params.key}" />
-                <input type="hidden" name="txnid" value="${params.txnid}" />
-                <input type="hidden" name="amount" value="${params.amount}" />
-                <input type="hidden" name="productinfo" value="${params.productinfo}" />
-                <input type="hidden" name="firstname" value="${params.firstname}" />
-                <input type="hidden" name="email" value="${params.email}" />
-                <input type="hidden" name="phone" value="${params.phone}" />
-                <input type="hidden" name="surl" value="${params.surl}" />
-                <input type="hidden" name="furl" value="${params.furl}" />
-                <input type="hidden" name="hash" value="${params.hash}" />
-                <input type="hidden" name="service_provider" value="${params.service_provider}" />
-            </form>
-            <script type="text/javascript">
+            <form id="payuForm" method="POST" action=${
+              apiEndpoint || "https://secure.payu.in/_payment"
+            }>
+                <input type="hidden" name="key" value="${payuParams.key}" />
+                <input type="hidden" name="txnid" value="${payuParams.txnid}" />
+                <input type="hidden" name="amount" value="${
+                  payuParams.amount
+                }" />
+                <input type="hidden" name="productinfo" value="${
+                  payuParams.productinfo
+                }" />
+                <input type="hidden" name="firstname" value="${
+                  payuParams.firstname
+                }" />
+                <input type="hidden" name="email" value="${payuParams.email}" />
+                <input type="hidden" name="phone" value="${payuParams.phone}" />
+                <input type="hidden" name="surl" value="${payuParams.surl}" />
+                <input type="hidden" name="furl" value="${payuParams.furl}" />
+                <input type="hidden" name="hash" value="${payuParams.hash}" />
+                <input type="hidden" name="split_info" value='${
+                  payuParams.split_info
+                }' />
+                </form>
+                <script type="text/javascript">
                 document.getElementById('payuForm').submit();
-            </script>
-        </body>
-        </html>
-    `;
+                </script>
+                </body>
+                </html>
+                `;
 
-  res.send(payuForm);
-  // return res.status(200).redirect(url);
-  // teacherSchema
-  //   .findById(req.body.teacherId)
-  //   .then((teacherData) => {
-  //     if (teacherData) {
-  //       donationSchema
-  //         .findOneAndDelete({ donorId: req.body.donorId, success: false })
-  //         .then((response) => {
-  //           donationSchema
-  //             .create({
-  //               donorId: req.body.donorId,
-  //               donateAmount: req.body.donateAmount,
-  //               teacherId: req.body.teacherId,
-  //               school: teacherData.school,
-  //             })
-  //             .then((donationRes) => {
-  //               res.status(200).redirect(url);
-  //               // res
-  //               //   .status(200)
-  //               //   .redirect(
-  //               //     `http://localhost:5000/donate/success?id=${donationRes._id}`
-  //               //   );
-  //             })
-  //             .catch((e) => {
-  //               console.log(e);
-  //               APIResponse.badRequest(res, "Invalid data", {});
-  //             });
-  //         })
-  //         .catch((e) => {
-  //           APIResponse.internalServerError(res, "something went wrong", {});
-  //         });
-  //     } else {
-  //       APIResponse.notFound(res, "teacher not found", {});
-  //     }
-  //   })
-  //   .catch((e) => {
-  //     console.log("e");
-  //     console.log(e);
-  //     APIResponse.badRequest(res, "Invalid data", {});
-  //   });
+                    // res.status(200).redirect(url);
+                    res.send(payuForm);
+                    // res
+                    //   .status(200)
+                    //   .redirect(
+                    //     `http://localhost:5000/donate/success?id=${donationRes._id}`
+                    //   );
+                  })
+                  .catch((e) => {
+                    console.log(e);
+                    APIResponse.badRequest(res, "Invalid data", {});
+                  });
+              })
+              .catch((e) => {
+                APIResponse.internalServerError(
+                  res,
+                  "something went wrong",
+                  {}
+                );
+              });
+          } else {
+            APIResponse.notFound(res, "teacher not found", {});
+          }
+        })
+        .catch((e) => {
+          console.log("e");
+          console.log(e);
+          APIResponse.badRequest(res, "Invalid data", {});
+        });
+    })
+    .catch((e) => {
+      APIResponse.badRequest(res, "Invalid donor", {});
+    });
 };
 const webhookSuccess = (req, res) => {
   try {
-    sendMail("", req.body.toString(), "deepanshus094@gmail.com");
+    // sendMail("", req.body.toString(), "deepanshus094@gmail.com");
     APIResponse.success(res, "success", {});
   } catch (e) {
     APIResponse.success(res, "success", {});

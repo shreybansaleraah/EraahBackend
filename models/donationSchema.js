@@ -11,6 +11,10 @@ const donationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    txnId: {
+      type: String,
+      required: true,
+    },
     teacherId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "teacher",

@@ -7,7 +7,7 @@ const storage = new Storage({
 
 const bucketName = "eraahstorage1";
 const bucket = storage.bucket(bucketName);
-console.log("bucket");
+// console.log("bucket");
 module.exports = {
   bucket,
 };

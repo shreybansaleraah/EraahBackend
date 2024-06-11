@@ -4,6 +4,7 @@ const { celebrate, Segments } = require("celebrate");
 const validation = require("../validation/donorValidation.js");
 const galleryValidation = require("../validation/galleryValidation.js");
 const contactValidation = require("../validation/contactValidation.js");
+const blogValidation = require("../validation/bogValidation.js");
 // const { NGORegister, NGOLogIn, deleteNGO, getNGODetail, updateNGO } = require('../controllers/NGO-controller.js');
 
 const {
@@ -112,6 +113,13 @@ const {
 } = require("../controllers/donor-controller.js");
 const { contactUs } = require("../controllers/connectUs-controller.js");
 const { contactFields } = require("../validation/contactValidation.js");
+const {
+  addBlog,
+  getBlogs,
+  deleteBlogs,
+  editBlogs,
+  getEachBlog,
+} = require("../controllers/blog-controller.js");
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -195,13 +203,47 @@ router.get(
   }),
   getDonorInfo
 );
-router.get(
+router.post(
   "/donate",
-  // celebrate({
-  //   [Segments.BODY]: validation.donate,
-  // }),
-  [],
+  celebrate({
+    [Segments.BODY]: validation.donate,
+  }),
+
   donate
+);
+router.get("/blogs", getBlogs);
+router.get(
+  "/eachBlog",
+  celebrate({
+    // [Segments.BODY]: blogValidation.addBlog,
+    [Segments.QUERY]: blogValidation.reqId,
+  }),
+  getEachBlog
+);
+router.post(
+  "/blog/update",
+  celebrate({
+    // [Segments.BODY]: blogValidation.addBlog,
+    [Segments.QUERY]: blogValidation.reqId,
+  }),
+  upload.single("img"),
+  editBlogs
+);
+router.post(
+  "/blog/delete",
+  celebrate({
+    [Segments.BODY]: blogValidation.reqId,
+  }),
+
+  deleteBlogs
+);
+router.post(
+  "/blog/add",
+  // celebrate({
+  //   [Segments.BODY]: blogValidation.addBlog,
+  // }),
+  upload.single("img"),
+  addBlog
 );
 router.post(
   "/donate/success",
