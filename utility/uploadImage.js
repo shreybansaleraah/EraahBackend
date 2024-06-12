@@ -14,7 +14,7 @@ const uploadImage = async (file, callback, onError) => {
       action: "read",
       expires: "3124-05-30T00:00:00Z",
     });
-    console.log(url);
+    // console.log(url);
     callback(url);
   } catch (e) {
     console.log(e);

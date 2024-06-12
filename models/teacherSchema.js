@@ -23,7 +23,7 @@ const teacherSchema = new mongoose.Schema(
     },
     photoUrl: {
       type: String,
-      required: true,
+      required: false,
       default: null,
     },
     password: {

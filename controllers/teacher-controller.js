@@ -414,6 +414,91 @@ const getSelectedTeacherDetail = async (req, res) => {
     APIResponse.internalServerError(res, "Internal Server Error", {});
   }
 };
+const uploadTeacherPhoto = (req, res) => {
+  console.log(req.query.id);
+
+  Teacher.findById(req.query.id)
+    .then((teacher) => {
+      if (!teacher) {
+        // return res.send({ message: "No teacher found" });
+        APIResponse.notFound(res, "No teacher found", []);
+      } else if (!req.file) {
+        APIResponse.badRequest(res, "Invalid file", {});
+      } else {
+        const pattern = /\/([^/?]+)\?/;
+        var fileName = teacher.photoUrl;
+        const match = fileName.match(pattern);
+        if (match) {
+          uploadImage.deleteImage(
+            match[1],
+            (deleteImageCallback) => {
+              uploadImage.uploadImage(
+                req.file,
+                (callback) => {
+                  Teacher.findByIdAndUpdate(req.query.id, {
+                    photoUrl: callback,
+                  })
+                    .then((value) => {
+                      APIResponse.success(res, "success", {});
+                    })
+                    .catch((err) => {
+                      APIResponse.badRequest(res, "Invalid file", {});
+                    });
+                },
+                (onError) => {
+                  APIResponse.badRequest(res, "Invalid file", {});
+                }
+              );
+            },
+            (deleteImageError) => {
+              if (deleteImageError.code === 404) {
+                uploadImage.uploadImage(
+                  req.file,
+                  (callback) => {
+                    Teacher.findByIdAndUpdate(req.query.id, {
+                      photoUrl: callback,
+                    })
+                      .then((value) => {
+                        APIResponse.success(res, "success", {});
+                      })
+                      .catch((err) => {
+                        APIResponse.badRequest(res, "Invalid file", {});
+                      });
+                  },
+                  (onError) => {
+                    APIResponse.badRequest(res, "Invalid file", {});
+                  }
+                );
+              } else {
+                APIResponse.badRequest(res, "Invalid file", {});
+              }
+            }
+          );
+        } else {
+          uploadImage.uploadImage(
+            req.file,
+            (callback) => {
+              Teacher.findByIdAndUpdate(req.query.id, { photoUrl: callback })
+                .then((value) => {
+                  APIResponse.success(res, "success", {});
+                })
+                .catch((err) => {
+                  APIResponse.badRequest(res, "Invalid file", {});
+                });
+            },
+            (onError) => {
+              APIResponse.badRequest(res, "Invalid file", {});
+            }
+          );
+        }
+      }
+    })
+    .catch((e) => {
+      console.error(err);
+      // res.status(500).json({ error: "Internal Server Error" });
+      APIResponse.internalServerError(res, "Internal Server Error", {});
+    });
+};
 
 module.exports = {
   teacherRegister,
@@ -428,4 +513,5 @@ module.exports = {
   makeTeacherHead,
   getAllTeachers,
   getSelectedTeacherDetail,
+  uploadTeacherPhoto,
 };

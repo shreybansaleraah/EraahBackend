@@ -60,6 +60,7 @@ const {
   clearAllStudentsAttendance,
   removeStudentAttendanceBySubject,
   removeStudentAttendance,
+  uploadStudentPhoto,
 } = require("../controllers/student_controller.js");
 const {
   subjectCreate,
@@ -84,6 +85,7 @@ const {
   makeTeacherHead,
   getAllTeachers,
   getSelectedTeacherDetail,
+  uploadTeacherPhoto,
 } = require("../controllers/teacher-controller.js");
 const {
   facilityCreate,
@@ -314,6 +316,23 @@ router.post(
   }),
   getGallery
 );
+router.post(
+  "/uploadStudentPhoto",
+  celebrate({
+    [Segments.QUERY]: validation.idRequire,
+  }),
+  upload.single("photo"),
+  uploadStudentPhoto
+);
+router.post(
+  "/uploadTeacherPhoto",
+  celebrate({
+    [Segments.QUERY]: validation.idRequire,
+  }),
+  upload.single("photo"),
+  uploadTeacherPhoto
+);
+// router.post("/StudentReg", upload.single("photo"), studentRegister);
 router.post("/StudentReg", upload.single("photo"), studentRegister);
 router.post("/StudentLogin", studentLogIn);
 

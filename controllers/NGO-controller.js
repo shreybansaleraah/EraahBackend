@@ -292,6 +292,7 @@ async function processStudentData(req) {
       name,
       rollNum,
       className,
+      photo,
       fatherName,
       fatherOcc,
       motherName,
@@ -336,6 +337,7 @@ async function processStudentData(req) {
       name,
       rollNum,
       sclassName: classId._id,
+      photoUrl: photo.startsWith("http") ? photo : null,
       fatherName,
       fatherOcc,
       motherName,
@@ -373,6 +375,7 @@ async function processTeacherData(req) {
         aadhar,
         pan,
         subject,
+        photo,
         classTeacher,
       ] = line.split(",");
 
@@ -488,6 +491,7 @@ async function processTeacherData(req) {
               pan,
               teachSubject: subjectId._id,
               school: req.params.id,
+              photoUrl: photo.startsWith("http") ? photo : null,
               classTeacher:
                 classTeacher.toLowerCase().replace(/[\r\n]/g, "") === "yes"
                   ? teachSclass
@@ -534,7 +538,7 @@ async function processTeacherData(req) {
 
     return { data: "success" };
   } catch (e) {
-    // console.log(e);
+    console.log(e);
     return { data: "failed" };
   }
 }

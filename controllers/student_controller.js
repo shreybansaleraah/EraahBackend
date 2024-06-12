@@ -318,6 +318,92 @@ const removeStudentAttendance = async (req, res) => {
   }
 };
 
+const uploadStudentPhoto = (req, res) => {
+  console.log(req.query.id);
+
+  Student.findById(req.query.id)
+    .then((student) => {
+      if (!student) {
+        // return res.send({ message: "No teacher found" });
+        APIResponse.notFound(res, "No student found", []);
+      } else if (!req.file) {
+        APIResponse.badRequest(res, "Invalid file", {});
+      } else {
+        const pattern = /\/([^/?]+)\?/;
+        var fileName = student.photoUrl;
+        const match = fileName.match(pattern);
+        if (match) {
+          uploadImage.deleteImage(
+            match[1],
+            (deleteImageCallback) => {
+              uploadImage.uploadImage(
+                req.file,
+                (callback) => {
+                  Student.findByIdAndUpdate(req.query.id, {
+                    photoUrl: callback,
+                  })
+                    .then((value) => {
+                      APIResponse.success(res, "success", {});
+                    })
+                    .catch((err) => {
+                      APIResponse.badRequest(res, "Invalid file", {});
+                    });
+                },
+                (onError) => {
+                  APIResponse.badRequest(res, "Invalid file", {});
+                }
+              );
+            },
+            (deleteImageError) => {
+              if (deleteImageError.code === 404) {
+                uploadImage.uploadImage(
+                  req.file,
+                  (callback) => {
+                    Student.findByIdAndUpdate(req.query.id, {
+                      photoUrl: callback,
+                    })
+                      .then((value) => {
+                        APIResponse.success(res, "success", {});
+                      })
+                      .catch((err) => {
+                        APIResponse.badRequest(res, "Invalid file", {});
+                      });
+                  },
+                  (onError) => {
+                    APIResponse.badRequest(res, "Invalid file", {});
+                  }
+                );
+              } else {
+                APIResponse.badRequest(res, "Invalid file", {});
+              }
+            }
+          );
+        } else {
+          uploadImage.uploadImage(
+            req.file,
+            (callback) => {
+              Student.findByIdAndUpdate(req.query.id, { photoUrl: callback })
+                .then((value) => {
+                  APIResponse.success(res, "success", {});
+                })
+                .catch((err) => {
+                  APIResponse.badRequest(res, "Invalid file", {});
+                });
+            },
+            (onError) => {
+              APIResponse.badRequest(res, "Invalid file", {});
+            }
+          );
+        }
+      }
+    })
+    .catch((e) => {
+      console.error(err);
+      // res.status(500).json({ error: "Internal Server Error" });
+      APIResponse.internalServerError(res, "Internal Server Error", {});
+    });
+};
+
 module.exports = {
   studentRegister,
   studentLogIn,
@@ -329,7 +415,7 @@ module.exports = {
   studentAttendance,
   deleteStudentsByClass,
   updateExamResult,
-
+  uploadStudentPhoto,
   clearAllStudentsAttendanceBySubject,
   clearAllStudentsAttendance,
   removeStudentAttendanceBySubject,
