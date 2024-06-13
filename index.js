@@ -6,6 +6,7 @@ var bodyParser = require("body-parser");
 dotenv.config();
 // const bodyParser = require("body-parser")
 const app = express();
+app.use(cors());
 const Routes = require("./routes/route.js");
 const { APIResponse } = require("./utility/index.js");
 const celebrate = require("celebrate");
@@ -25,10 +26,10 @@ app.use(
     parameterLimit: 50000,
   })
 );
+
 // app.use(express.bodyParser({ limit: "50mb", extended: true }));
 // app.use(express.json({ limit: "50mb" }));
 // app.use(express.urlencoded({ limit: "50mb" }));
-app.use(cors());
 
 mongoose
   .connect(process.env.MONGO_URL, {
