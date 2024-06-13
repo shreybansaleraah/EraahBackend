@@ -125,7 +125,10 @@ const {
 } = require("../controllers/blog-controller.js");
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({
+  limits: { fileSize: 10 * 1024 * 1024 },
+  storage: storage,
+}); // for 10mb
 // Admin
 router.post("/AdminReg", adminRegister);
 router.post("/AdminLogin", adminLogIn);
