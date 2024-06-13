@@ -23,6 +23,7 @@ const {
   uploadBulkCsv,
   uploadPhotoGalleryForTeacher,
   getGallery,
+  getGalleryAll,
 } = require("../controllers/NGO-controller.js");
 
 const {
@@ -332,6 +333,7 @@ router.post(
   upload.single("photo"),
   uploadTeacherPhoto
 );
+router.get("/getGalleryAll", getGalleryAll);
 // router.post("/StudentReg", upload.single("photo"), studentRegister);
 router.post("/StudentReg", upload.single("photo"), studentRegister);
 router.post("/StudentLogin", studentLogIn);

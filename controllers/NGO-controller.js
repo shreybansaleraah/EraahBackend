@@ -250,6 +250,37 @@ const uploadPhotoGalleryForTeacher = async (req, res) => {
     APIResponse.internalServerError(res, "something went wrong", {});
   }
 };
+
+const getGalleryAll = (req, res) => {
+  ngoGalleryschema
+    .find({}, { picUrl: 1, _id: 0 })
+    .then((ngoGallery) => {
+      teacherGallerySchema
+        .find({}, { picUrl: 1, _id: 0 })
+        .then((teacherGallery) => {
+          studentGallerySchema
+            .find({}, { picUrl: 1, _id: 0 })
+            .then((studentGallery) => {
+              var data = [
+                ...ngoGallery.splice(0, 5),
+                ...teacherGallery.splice(0, 5),
+                ...studentGallery.splice(0, 5),
+              ];
+              APIResponse.success(res, "success", data);
+            });
+        })
+        .catch((e) => {
+          APIResponse.badRequest(res, "something went wrong", []);
+        })
+        .catch((e) => {
+          APIResponse.badRequest(res, "something went wrong", []);
+        });
+    })
+    .catch((e) => {
+      APIResponse.badRequest(res, "something went wrong", []);
+    });
+};
+
 const getGallery = async (req, res) => {
   var data = [];
   if (req.body.studentId) {
@@ -637,4 +668,5 @@ module.exports = {
   uploadBulkCsv,
   uploadPhotoGalleryForTeacher,
   getGallery,
+  getGalleryAll,
 };
