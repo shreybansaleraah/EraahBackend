@@ -12,6 +12,7 @@ const teacherGallerySchema = require("../models/teacherGallerySchema.js");
 const studentGallerySchema = require("../models/studentGallerySchema.js");
 const ngoGalleryschema = require("../models/ngoGalleryschema.js");
 const { uploadImage } = require("../utility/uploadImage.js");
+const subjectSchema = require("../models/subjectSchema.js");
 const NGORegister = async (req, res) => {
   try {
     const existingNGOByEmail = await NGO.findOne({ email: req.body.email });
@@ -442,124 +443,204 @@ async function processTeacherData(req) {
               : `Incorrect pan of ${name}`,
           };
         } else {
-          var existEmailAndClass = false;
-          // console.log("start ");
-          const existingTeacherByEmail = await Teacher.findOne({
-            email,
-            school: req.params.id,
-          });
-          var classId = await Sclass.findOne({
-            sclassName: teachSclass,
-            school: req.params.id,
-          });
-          const existingTeacherByEmailAndClass = await Teacher.findOne({
-            email,
-          })
-            .populate("teachSclass")
-            .exec();
-          if (existingTeacherByEmailAndClass != null) {
-            // console.log("in existing teacher if condition");
-            existEmailAndClass = existingTeacherByEmailAndClass.teachSclass
-              .map((sclass) => sclass.sclassName.toString())
-              .includes(teachSclass);
-          }
-          // console.log("else condition");
-          if (existEmailAndClass) {
-            continue;
-          } else if (existingTeacherByEmail) {
-            // console.log("else email");
-            if (classId === undefined || !classId) {
-              // console.log("undefine");
-              classId = await Sclass.create({
-                sclassName: teachSclass,
-                school: req.params.id,
-              });
-              // continue;
+          console.log("teachSclass");
+          console.log(teachSclass);
+          // console.log(teachSclass.split("|"));
+          var classArray = teachSclass.split("|");
+
+          for (var itemClass of classArray) {
+            if (itemClass === "0" || itemClass === 0) {
+              continue;
             }
-            let result = await Teacher.findByIdAndUpdate(
-              existingTeacherByEmail._id,
-              { $push: { teachSclass: classId._id } },
-              { new: true }
-            );
-            // await Subject.findByIdAndUpdate(teachSubject, {
-            //   teacher: existEmailAndClass._id,
-            // });
-          } else {
-            // console.log("not exist cond");
-            // console.log(subject);
-            // console.log(req.params.id);
-            // // console.log(classTeacher.replace(/[\r\n]/g, ""));
-            var subjectId = await Subject.findOne({
-              subName: subject,
+
+            var existEmailAndClass = false;
+            // console.log("start ");
+            const existingTeacherByEmail = await Teacher.findOne({
+              email,
               school: req.params.id,
             });
-            // console.log(subjectId);
-            if (classId === undefined || !classId) {
-              // console.log("undefine");
-              // continue;
-              classId = await Sclass.create({
-                sclassName: teachSclass,
-                school: req.params.id,
-              });
+
+            var classId = await Sclass.findOne({
+              sclassName: itemClass,
+              school: req.params.id,
+            });
+            const existingTeacherByEmailAndClass = await Teacher.findOne({
+              email,
+            })
+              .populate("teachSclass")
+              .populate("teachSubject")
+              .exec();
+            let existingTeacherByEmailAndSubject = false;
+            if (existingTeacherByEmailAndClass != null) {
+              existingTeacherByEmailAndSubject =
+                existingTeacherByEmailAndClass.teachSubject
+                  .map((subject) => subject.subName.toString())
+                  .includes(subject);
             }
-            if (subjectId === undefined || !subjectId) {
-              subjectId = await Subject.create({
+            // console.log("exist subject start");
+
+            // const existingSubject = await subjectSchema.findOne({
+            //   subName: subject,
+            //   sclassName: classId._id,
+            //   school: req.params.id,
+            // });
+            // console.log("exist subject pass");
+            let subjectAndClass = false;
+            if (existingTeacherByEmailAndClass != null) {
+              // console.log("in existing teacher if condition");
+              existEmailAndClass = existingTeacherByEmailAndClass.teachSclass
+                .map((sclass) => sclass.sclassName.toString())
+                .includes(itemClass);
+              // console.log("sAC");
+              // console.log(existingTeacherByEmailAndClass._id);
+              // console.log(classId);
+              if (existEmailAndClass) {
+                subjectAndClass = await subjectSchema.findOne({
+                  sclassName: classId._id,
+                  subName: subject,
+                  school: req.params.id,
+                  teacher: existingTeacherByEmailAndClass._id,
+                });
+              }
+            }
+
+            // console.log("else condition");
+            if (existEmailAndClass) {
+              if (subjectAndClass) {
+                continue;
+              } else {
+                var itemClassData = await Sclass.findOne({
+                  sclassName: itemClass,
+                  school: req.params.id,
+                });
+                var subjectCreate = await subjectSchema.create({
+                  subName: subject,
+                  school: req.params.id,
+                  sclassName: itemClassData._id,
+                  teacher: existingTeacherByEmail._id,
+                });
+                if (!existingTeacherByEmailAndSubject) {
+                  await Teacher.findByIdAndUpdate(
+                    existingTeacherByEmail._id,
+                    { $push: { teachSubject: subjectCreate._id } },
+                    { new: true }
+                  );
+                }
+              }
+            } else if (existingTeacherByEmail) {
+              // console.log("else email");
+              if (classId === undefined || !classId) {
+                // console.log("undefine");
+                classId = await Sclass.create({
+                  sclassName: itemClass,
+                  school: req.params.id,
+                });
+                // continue;
+              }
+              var subjectCreate = await subjectSchema.create({
                 subName: subject,
                 school: req.params.id,
                 sclassName: classId._id,
+                teacher: existingTeacherByEmail._id,
               });
-            }
-
-            var results = {
-              name,
-              teachSclass: classId._id,
-              email,
-              password: await bcrypt.hash(
-                password ?? "",
-                await bcrypt.genSalt(10)
-              ),
-              aadhar,
-              pan,
-              teachSubject: subjectId._id,
-              school: req.params.id,
-              photoUrl: photo.startsWith("http") ? photo : null,
-              classTeacher:
-                classTeacher.toLowerCase().replace(/[\r\n]/g, "") === "yes"
-                  ? teachSclass
-                  : "NO",
-            };
-            // console.log("result created");
-            // console.log(results);
-
-            if (
-              results.name.trim() !== "" &&
-              results.name.trim() !== undefined &&
-              results.name.length !== 0
-            ) {
-              // console.log("results if cond");
-              var teacher = await Teacher.create(results);
-              await Subject.findByIdAndUpdate(subjectId._id, {
-                teacher: teacher._id,
-              });
-              // // console.log(classTeacher.toLowerCase().includes("yes"));
-              // // console.log(classTeacher.toLowerCase());
-              // // console.log(typeof classTeacher);
-              if (classTeacher.toLowerCase().includes("yes")) {
-                // console.log("yes class teacher");
-                await Student.updateMany(
-                  { sclassName: classId._id },
-                  { $set: { classTeacher: teacher._id } }
+              if (existingTeacherByEmailAndSubject) {
+                let result = await Teacher.findByIdAndUpdate(
+                  existingTeacherByEmail._id,
+                  { $push: { teachSclass: classId._id } },
+                  { new: true }
                 );
-                // const className = await Sclass.find({ teachSclass, school });
-                await Teacher.findOneAndUpdate(
+              } else {
+                await Teacher.findByIdAndUpdate(
+                  existingTeacherByEmail._id,
                   {
-                    classTeacher: classId.sclassName,
+                    $push: {
+                      teachSclass: classId._id,
+                      teachSubject: subjectCreate._id,
+                    },
                   },
-                  { classTeacher: "NO" }
+                  { new: true }
                 );
-                await Teacher.findByIdAndUpdate(req.body.id, {
-                  classTeacher: classId.sclassName,
+              }
+              // await Subject.findByIdAndUpdate(teachSubject, {
+              //   teacher: existEmailAndClass._id,
+              // });
+            } else {
+              // console.log("not exist cond");
+              // console.log(subject);
+              // console.log(req.params.id);
+              // // console.log(classTeacher.replace(/[\r\n]/g, ""));
+              var subjectId = await Subject.findOne({
+                subName: subject,
+                school: req.params.id,
+              });
+              // console.log(subjectId);
+              if (classId === undefined || !classId) {
+                // console.log("undefine");
+                // continue;
+                classId = await Sclass.create({
+                  sclassName: itemClass,
+                  school: req.params.id,
                 });
+              }
+              if (subjectId === undefined || !subjectId) {
+                subjectId = await Subject.create({
+                  subName: subject,
+                  school: req.params.id,
+                  sclassName: classId._id,
+                });
+              }
+
+              var results = {
+                name,
+                teachSclass: classId._id,
+                email,
+                password: await bcrypt.hash(
+                  password ?? "",
+                  await bcrypt.genSalt(10)
+                ),
+                aadhar,
+                pan,
+                teachSubject: subjectId._id,
+                school: req.params.id,
+                photoUrl: photo.startsWith("http") ? photo : null,
+                classTeacher:
+                  classTeacher.toLowerCase().replace(/[\r\n]/g, "") === "yes"
+                    ? itemClass
+                    : "NO",
+              };
+              // console.log("result created");
+              // console.log(results);
+
+              if (
+                results.name.trim() !== "" &&
+                results.name.trim() !== undefined &&
+                results.name.length !== 0
+              ) {
+                // console.log("results if cond");
+                var teacher = await Teacher.create(results);
+                await Subject.findByIdAndUpdate(subjectId._id, {
+                  teacher: teacher._id,
+                });
+                // // console.log(classTeacher.toLowerCase().includes("yes"));
+                // // console.log(classTeacher.toLowerCase());
+                // // console.log(typeof classTeacher);
+                if (classTeacher.toLowerCase().includes("yes")) {
+                  // console.log("yes class teacher");
+                  await Student.updateMany(
+                    { sclassName: classId._id },
+                    { $set: { classTeacher: teacher._id } }
+                  );
+                  // const className = await Sclass.find({ teachSclass, school });
+                  await Teacher.findOneAndUpdate(
+                    {
+                      classTeacher: classId.sclassName,
+                    },
+                    { classTeacher: "NO" }
+                  );
+                  await Teacher.findByIdAndUpdate(req.body.id, {
+                    classTeacher: classId.sclassName,
+                  });
+                }
               }
             }
           }
