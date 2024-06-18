@@ -123,13 +123,32 @@ const {
   editBlogs,
   getEachBlog,
 } = require("../controllers/blog-controller.js");
+const {
+  urlConverter,
+  getCsvFile,
+} = require("../controllers/urlConverter-controller.js");
 
 const storage = multer.memoryStorage();
 const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 },
   storage: storage,
-}); // for 10mb
+}); // for 100mb
 // Admin
+router.post(
+  "/eraahUrlConverter",
+  celebrate({
+    [Segments.QUERY]: validation.idRequire,
+  }),
+  upload.single("file"),
+  urlConverter
+);
+router.get(
+  "/download",
+  celebrate({
+    [Segments.QUERY]: validation.filePath,
+  }),
+  getCsvFile
+);
 router.post("/AdminReg", adminRegister);
 router.post("/AdminLogin", adminLogIn);
 router.get("/adminDashboard/:id", getAdminDashboardData);
