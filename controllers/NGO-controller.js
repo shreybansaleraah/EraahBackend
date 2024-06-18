@@ -589,8 +589,8 @@ async function processTeacherData(req) {
                   sclassName: classId._id,
                 });
               }
-              console.log("photo");
-              console.log(photo);
+              // console.log("photo");
+              // console.log(photo);
               var results = {
                 name,
                 teachSclass: classId._id,
@@ -603,8 +603,8 @@ async function processTeacherData(req) {
                 pan,
                 teachSubject: subjectId._id,
                 school: req.params.id,
-                photoUrl: photo.replace('"', "").startsWith("http")
-                  ? photo.replace('"', "")
+                photoUrl: photo.replace(/"/g, "").startsWith("http")
+                  ? photo.replace(/"/g, "")
                   : null,
                 classTeacher:
                   classTeacher.toLowerCase().replace(/[\r\n]/g, "") === "no"
