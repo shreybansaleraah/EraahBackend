@@ -163,10 +163,11 @@ const urlConverter = (req, res) => {
             fs.mkdirSync(extractFolder);
           } else {
             // Clean up the extraction folder
-            fs.readdirSync(extractFolder).forEach((file) => {
-              const filePath = path.join(extractFolder, file);
-              fs.unlinkSync(filePath);
-            });
+            fs.rmSync(extractFolder, { recursive: true, force: true });
+            // fs.readdirSync(extractFolder).forEach((file) => {
+            //   const filePath = path.join(extractFolder, file);
+            //   fs.unlinkSync(filePath);
+            // });
           }
           // Extract zip file
           console.log("load admzip");
