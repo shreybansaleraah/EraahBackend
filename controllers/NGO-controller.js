@@ -604,9 +604,9 @@ async function processTeacherData(req) {
                 school: req.params.id,
                 photoUrl: photo.startsWith("http") ? photo : null,
                 classTeacher:
-                  classTeacher.toLowerCase().replace(/[\r\n]/g, "") === "yes"
-                    ? itemClass
-                    : "NO",
+                  classTeacher.toLowerCase().replace(/[\r\n]/g, "") === "no"
+                    ? "NO"
+                    : classTeacher.toLowerCase().replace(/[\r\n]/g, ""),
               };
               // console.log("result created");
               // console.log(results);
@@ -624,7 +624,7 @@ async function processTeacherData(req) {
                 // // console.log(classTeacher.toLowerCase().includes("yes"));
                 // // console.log(classTeacher.toLowerCase());
                 // // console.log(typeof classTeacher);
-                if (classTeacher.toLowerCase().includes("yes")) {
+                if (!classTeacher.toLowerCase().includes("no")) {
                   // console.log("yes class teacher");
                   await Student.updateMany(
                     { sclassName: classId._id },
