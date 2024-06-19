@@ -356,19 +356,19 @@ const deleteTeachersByClass = async (req, res) => {
 };
 
 const teacherAttendance = async (req, res) => {
-  const { status, teacherId } = req.body;
-  teacherAttendenceSchema
-    .create({
-      school: req.query.id,
-      status,
-      teacher: teacherId,
-    })
-    .then((data) => {
-      APIResponse.success(res, "success", {});
-    })
-    .catch((err) => {
-      APIResponse.badRequest(res, "Invalid data", {});
-    });
+  // const { status, teacherId } = req.body;
+  try {
+    for (var item of req.body.teachers) {
+      await teacherAttendenceSchema.create({
+        school: req.query.id,
+        status: item.status,
+        teacher: item.teacherId,
+      });
+    }
+    APIResponse.success(res, "success", {});
+  } catch (e) {
+    APIResponse.badRequest(res, "Invalid data", {});
+  }
 };
 
 const getAllTeachers = (req, res) => {
