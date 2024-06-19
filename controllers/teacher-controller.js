@@ -179,24 +179,12 @@ const getTeachers = async (req, res) => {
     let teachers = await Teacher.find({ school: req.params.id })
       .populate("teachSubject", "subName")
       .populate("teachSclass", "sclassName");
-    if (teachers.length > 0) {
-      let modifiedTeachers = teachers.map(async (teacher) => {
-        var attendenceResult = await teacherAttendenceSchema.find({
-          teacher: teacher._id,
-        });
-        let total = attendenceResult.length ?? 0;
-        let present =
-          attendenceResult?.filter((item) => item.status === "present") ?? [];
 
+    if (teachers.length > 0) {
+      let modifiedTeachers = teachers.map((teacher) => {
         return {
           ...teacher._doc,
           password: undefined,
-          attendance: {
-            presentPercent: total === 0 ? 0 : (present.length / total) * 100,
-            presentCount: present.length,
-            absentCount: total - present.length,
-            totalCount: total,
-          },
         };
       });
       res.send(modifiedTeachers);
