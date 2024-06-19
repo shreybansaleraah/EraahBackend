@@ -42,7 +42,7 @@ const allNoticecList = async (req, res) => {
       if (notices.length > 0) {
         APIResponse.success(res, null, notices);
       } else {
-        APIResponse.notFound(res, "No notices found", {});
+        APIResponse.success(res, "No notices found", []);
       }
     } else {
       APIResponse.unAuthorized(res, "Unauthorized", {});
