@@ -61,20 +61,22 @@ const teacherSchema = new mongoose.Schema(
         },
       ],
     },
-    attendance: [
-      {
-        date: {
-          type: Date,
-          required: true,
-        },
-        presentCount: {
-          type: String,
-        },
-        absentCount: {
-          type: String,
-        },
+    attendance: {
+      presentPercent: {
+        type: Number,
+        // required: true,
       },
-    ],
+      totalCount: {
+        type: Number,
+        // required: true,
+      },
+      presentCount: {
+        type: Number,
+      },
+      absentCount: {
+        type: Number,
+      },
+    },
   },
   { timestamps: true }
 );

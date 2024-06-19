@@ -18,6 +18,8 @@ const donorRegister = (req, res) => {
       APIResponse.success(res, "Successfully donor added", value);
     })
     .catch((err) => {
+      console.log("err");
+      console.log(err);
       APIResponse.badRequest(res, err, {});
     });
 };

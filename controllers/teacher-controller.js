@@ -3,6 +3,7 @@ const Teacher = require("../models/teacherSchema.js");
 const Subject = require("../models/subjectSchema.js");
 const Student = require("../models/studentSchema.js");
 const SClass = require("../models/sclassSchema.js");
+const teacherAttendenceSchema = require("../models/teacherAttendence.js");
 
 const { uploadImage, APIResponse } = require("../utility/index.js");
 
@@ -179,8 +180,24 @@ const getTeachers = async (req, res) => {
       .populate("teachSubject", "subName")
       .populate("teachSclass", "sclassName");
     if (teachers.length > 0) {
-      let modifiedTeachers = teachers.map((teacher) => {
-        return { ...teacher._doc, password: undefined };
+      let modifiedTeachers = teachers.map(async (teacher) => {
+        var attendenceResult = await teacherAttendenceSchema.find({
+          teacher: teacher._id,
+        });
+        let total = attendenceResult.length ?? 0;
+        let present =
+          attendenceResult?.filter((item) => item.status === "present") ?? [];
+
+        return {
+          ...teacher._doc,
+          password: undefined,
+          attendance: {
+            presentPercent: total === 0 ? 0 : (present.length / total) * 100,
+            presentCount: present.length,
+            absentCount: total - present.length,
+            totalCount: total,
+          },
+        };
       });
       res.send(modifiedTeachers);
     } else {
@@ -201,6 +218,18 @@ const getTeacherDetail = async (req, res) => {
     if (!teacher) {
       return res.send({ message: "No teacher found" });
     }
+    var attendenceResult = await teacherAttendenceSchema.find({
+      teacher: req.params.id,
+    });
+    let total = attendenceResult.length ?? 0;
+    let present =
+      attendenceResult?.filter((item) => item.status === "present") ?? [];
+    teacher.attendance = {
+      presentPercent: total === 0 ? 0 : (present.length / total) * 100,
+      presentCount: present.length,
+      absentCount: total - present.length,
+      totalCount: total,
+    };
 
     // Create a new object or use .lean() to avoid modifying the original document
     const teacherDetails = { ...teacher._doc };
@@ -327,30 +356,19 @@ const deleteTeachersByClass = async (req, res) => {
 };
 
 const teacherAttendance = async (req, res) => {
-  const { status, date } = req.body;
-
-  try {
-    const teacher = await Teacher.findById(req.params.id);
-
-    if (!teacher) {
-      return res.send({ message: "Teacher not found" });
-    }
-
-    const existingAttendance = teacher.attendance.find(
-      (a) => a.date.toDateString() === new Date(date).toDateString()
-    );
-
-    if (existingAttendance) {
-      existingAttendance.status = status;
-    } else {
-      teacher.attendance.push({ date, status });
-    }
-
-    const result = await teacher.save();
-    return res.send(result);
-  } catch (error) {
-    res.status(500).json(error);
-  }
+  const { status, teacherId } = req.body;
+  teacherAttendenceSchema
+    .create({
+      school: req.query.id,
+      status,
+      teacher: teacherId,
+    })
+    .then((data) => {
+      APIResponse.success(res, "success", {});
+    })
+    .catch((err) => {
+      APIResponse.badRequest(res, "Invalid data", {});
+    });
 };
 
 const getAllTeachers = (req, res) => {

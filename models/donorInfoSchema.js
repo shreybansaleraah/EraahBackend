@@ -54,7 +54,7 @@ const donorInfoSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-    unique: true,
+    // unique: true,
     required: true,
     default: null,
   },
