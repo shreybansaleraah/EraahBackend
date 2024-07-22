@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const donationSchema = require("../models/donationSchema.js");
 const NGOSchema = require("../models/NGOSchema.js");
 const teacherSchema = require("../models/teacherSchema.js");
+const axios = require("axios");
 // const dotenv = require("dotenv");
 // dotenv.config();
 const donorRegister = (req, res) => {
@@ -246,87 +247,118 @@ const verifyDonorOtp = (req, res) => {
     });
 };
 const paymentSuccess = (req, res) => {
-  console.log("hello redirection");
-  // console.log(req.body);
-  // console.log("req is given below");
-  // console.log(req);
-  // res.send(req);
-  // return console.log(req.body);
-  if (req.body.status === "success") {
-    donationSchema
-      .findOneAndUpdate({ txnId: req.body.txnid }, { success: true })
-      .then((response) => {
-        response.success = true;
-        // APIResponse.success(res, "success", response);
-        APIResponse.success(res, "success", req.body);
-      })
-      .catch((e) => {
-        APIResponse.badRequest(res, "Invalid data", {});
-      });
-  }
-  // donationSchema
-  //   .findOne({
-  //     name: req.body.firstname,
-  //     email: req.body.email,
-  //     phoneNumber: req.body.phone,
-  //   }) .then((donationResponse) => {
+  donationSchema
+    .findOne({
+      name: req.body.firstname,
+      email: req.body.email,
+      phoneNumber: req.body.phone,
+    })
+    .then((donationResponse) => {
+      Teacher.findOne(donationResponse.teacherId)
+        .populate("school")
+        .then((teacherResponse) => {
+          console.log("teacherResponse");
+          console.log(teacherResponse);
+          let pgKey = teacherResponse.school.pgKey;
+          let varParams = {
+            type: "percentage",
+            payuId: req.body.mihpayid,
+            splitInfo: {
+              [pgKey]: {
+                aggregatorSubTxnId:
+                  "txn" + new Date().getTime() + teacherResponse.school._id,
+                aggregatorSubAmt: "90.00",
+                aggregatorCharges: "10.00",
+              },
+            },
+          };
 
-  // donationSchema
-  //   .findOne({
-  //     donorId: donationResponse.donorId,
-  //     teacherId: donationResponse.teacherId,
-  //     success: true,
-  //   })
-  //   .then((response) => {
-  //     if (response) {
-  //       console.log("if condition");
-  //       donationSchema
-  //         .findByIdAndUpdate(response._id, {
-  //           donateAmount: (
-  //             parseInt(response.donateAmount ?? "") +
-  //             parseInt(donationResponse.donateAmount ?? "")
-  //           ).toString(),
-  //         })
-  //         .then((response) => {
-  //           donationSchema
-  //             .findByIdAndDelete(donationResponse)
-  //             .then((deleted) => {
-  //               (response.donateAmount = (
-  //                 parseInt(response.donateAmount ?? "") +
-  //                 parseInt(donationResponse.donateAmount ?? "")
-  //               ).toString()),
-  //                 // response.success = true;
-  //                 APIResponse.success(res, "success", response);
-  //             })
-  //             .catch((err) => {
-  //               APIResponse.badRequest(res, "Invalid data", {});
-  //             });
-  //         })
-  //         .catch((e) => {
-  //           APIResponse.badRequest(res, "Invalid data", {});
-  //         });
-  //     } else {
-  //       console.log("else condition");
-  //       donationSchema
-  //         .findOneAndUpdate(
-  //           { _id: donationResponse._id, txnId: req.body.txnid },
-  //           { success: true }
-  //         )
-  //         .then((response) => {
-  //           response.success = true;
-  //           APIResponse.success(res, "success", response);
-  //         })
-  //         .catch((e) => {
-  //           APIResponse.badRequest(res, "Invalid data", {});
-  //         });
-  //     }
-  //   })
-  //   .catch((e) => {
-  //     APIResponse.badRequest(res, "Invalid data", {});
-  //   });
+          let generatedHashForSplit = generatedHashForSplit(varParams);
 
-  // res.status(200).redirect("http://localhost:3000/explore");
-  // });
+          let splitPayload = {
+            key: process.env.merchantKeyTest,
+            command: "payment_split",
+            hash: generatedHashForSplit,
+            var1: varParams,
+          };
+
+          axios.Axios.post(
+            "https://test.payu.in/merchant/postservice.php?form=2",
+            splitPayload,
+            {
+              Headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            }
+          )
+            .then((splitResponse) => {
+              console.log(splitResponse);
+              APIResponse.success(res, "success", splitResponse);
+            })
+            .catch((splitErr) => {
+              console.log(splitErr);
+            });
+        })
+        .catch((teachErr) => {
+          console.log(teachErr);
+          APIResponse.badRequest(res, "Teacher not found", {});
+        });
+      donationSchema
+        .findOne({
+          donorId: donationResponse.donorId,
+          teacherId: donationResponse.teacherId,
+          success: true,
+        })
+        .then((response) => {
+          if (response) {
+            console.log("if condition");
+            donationSchema
+              .findByIdAndUpdate(response._id, {
+                donateAmount: (
+                  parseInt(response.donateAmount ?? "") +
+                  parseInt(donationResponse.donateAmount ?? "")
+                ).toString(),
+              })
+              .then((response) => {
+                donationSchema
+                  .findByIdAndDelete(donationResponse)
+                  .then((deleted) => {
+                    (response.donateAmount = (
+                      parseInt(response.donateAmount ?? "") +
+                      parseInt(donationResponse.donateAmount ?? "")
+                    ).toString()),
+                      // response.success = true;
+                      APIResponse.success(res, "success", response);
+                  })
+                  .catch((err) => {
+                    APIResponse.badRequest(res, "Invalid data", {});
+                  });
+              })
+              .catch((e) => {
+                APIResponse.badRequest(res, "Invalid data", {});
+              });
+          } else {
+            console.log("else condition");
+            donationSchema
+              .findOneAndUpdate(
+                { _id: donationResponse._id, txnId: req.body.txnid },
+                { success: true }
+              )
+              .then((response) => {
+                response.success = true;
+                APIResponse.success(res, "success", response);
+              })
+              .catch((e) => {
+                APIResponse.badRequest(res, "Invalid data", {});
+              });
+          }
+        })
+        .catch((e) => {
+          APIResponse.badRequest(res, "Invalid data", {});
+        });
+
+      res.status(200).redirect("http://localhost:3000/explore");
+    });
 };
 
 const donate = (req, res) => {
@@ -410,13 +442,8 @@ const donate = (req, res) => {
                       hash: hash,
                       // hash: "616826e3d8b6d1bafc6f2108c8c110c29c3246f4abfc408e72e378e9bd4ef661ebad8cd72c1aa38d1435f41d0565813f02b8cb60ad9b5d294a8390bb5673cb21",
                       service_provider: "payu_paisa",
-                      split_info: JSON.stringify({
-                        account1: {
-                          amount: "10.00",
-                          ...bankAccount1,
-                        },
-                      }),
                     };
+
                     const payuForm = `
         <html>
         <body>
@@ -439,9 +466,8 @@ const donate = (req, res) => {
                 <input type="hidden" name="surl" value="${payuParams.surl}" />
                 <input type="hidden" name="furl" value="${payuParams.furl}" />
                 <input type="hidden" name="hash" value="${payuParams.hash}" />
-                <input type="hidden" name="split_info" value='${
-                  payuParams.split_info
-                }' />
+                 <input type="hidden" name="type" value="${payuParams.type}" />
+      
                 </form>
                 <script type="text/javascript">
                 document.getElementById('payuForm').submit();
@@ -521,8 +547,10 @@ const donorNgos = (req, res) => {
     });
 };
 
-function generatedHash(params, salt) {
-  let hashString = `${params.key}|${params.txnid}|${params.amount}|${params.productinfo}|${params.firstname}|${params.email}|${params.udf1}|${params.udf2}|${params.udf3}|${params.udf4}|${params.udf5}||||||${salt}`;
+function generatedHashForSplit(varParam) {
+  let hashString = `${
+    process.env.merchantKeyTest
+  }|payment_split|${JSON.stringify(varParam)}|${process.env.merchantSaltTest}`;
 
   console.log(hashString);
   return crypto.createHash("sha512").update(hashString).digest("hex");

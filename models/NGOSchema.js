@@ -1,4 +1,31 @@
 const mongoose = require("mongoose");
+const bankDetails = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    default: null,
+  },
+  accountNumber: {
+    type: String,
+    required: true,
+    default: null,
+  },
+  ifsc: {
+    type: String,
+    required: true,
+    default: null,
+  },
+  bankName: {
+    type: String,
+    required: true,
+    default: null,
+  },
+  branchName: {
+    type: String,
+    required: true,
+    default: null,
+  },
+});
 
 const NGOSchema = new mongoose.Schema({
   name: {
@@ -38,6 +65,11 @@ const NGOSchema = new mongoose.Schema({
     type: String,
     default: "NGO",
   },
+  mobile: {
+    type: String,
+    default: "",
+    required: true,
+  },
   addUrl: {
     type: String,
     unique: false,
@@ -55,6 +87,12 @@ const NGOSchema = new mongoose.Schema({
     unique: false,
     required: true,
   },
+  pgKey: {
+    type: String,
+    unique: true,
+    required: true,
+    default: "",
+  },
   schoolName: {
     type: String,
     unique: false,
@@ -69,6 +107,16 @@ const NGOSchema = new mongoose.Schema({
     type: String,
     unique: false,
     required: true,
+  },
+  bankDetails: {
+    type: bankDetails,
+    required: true,
+    default: null,
+  },
+  eraahCharges: {
+    type: String,
+    required: true,
+    default: "6",
   },
 });
 

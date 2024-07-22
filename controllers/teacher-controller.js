@@ -174,6 +174,52 @@ const teacherLogIn = async (req, res) => {
   }
 };
 
+const getTeachersForAttendance = (req, res) => {
+  let finalData = [];
+  Teacher.find({ school: req.query.id })
+    .then((teachers) => {
+      if (teachers && teachers.length > 0) {
+        Promise.all(
+          teachers.map((eachTeacher) => {
+            return teacherAttendenceSchema
+              .findOne({
+                teacher: eachTeacher._id,
+                school: req.query.id,
+              })
+              .populate("teacher")
+              .then((teachAttendData) => {
+                if (teachAttendData) {
+                  finalData.push({
+                    status: teachAttendData.status,
+                    teacher: teachAttendData.teacher,
+                  });
+                } else {
+                  finalData.push({
+                    status: false,
+                    teacher: eachTeacher,
+                  });
+                }
+              })
+              .catch((teacAttenError) => {
+                return Promise.reject(teacAttenError);
+              });
+          })
+        )
+          .then(() => {
+            APIResponse.success(res, "success", finalData);
+          })
+          .catch(() => {
+            APIResponse.badRequest(res, "Invalid Data", []);
+          });
+      } else {
+        APIResponse.success(res, "success", []);
+      }
+    })
+    .catch(() => {
+      APIResponse.badRequest(res, "Invalid Request", {});
+    });
+};
+
 const getTeachers = async (req, res) => {
   try {
     let teachers = await Teacher.find({ school: req.params.id })
@@ -343,20 +389,34 @@ const deleteTeachersByClass = async (req, res) => {
   }
 };
 
-const teacherAttendance = async (req, res) => {
+const teacherAttendance = (req, res) => {
   // const { status, teacherId } = req.body;
-  try {
-    for (var item of req.body.teachers) {
-      await teacherAttendenceSchema.create({
-        school: req.query.id,
-        status: item.status,
-        teacher: item.teacherId,
-      });
-    }
-    APIResponse.success(res, "success", {});
-  } catch (e) {
-    APIResponse.badRequest(res, "Invalid data", {});
-  }
+  const todayDate = new Date().toISOString().split("T")[0];
+  teacherAttendenceSchema
+    .deleteMany({
+      school: req.query.id,
+      date: { $gte: todayDate, $lt: `${todayDate}T23:59:59.999Z` },
+    })
+    .then(async (value) => {
+      try {
+        for (var item of req.body) {
+          await teacherAttendenceSchema.create({
+            school: req.query.id,
+            status:
+              item.status === true || item.status === "present"
+                ? "present"
+                : "absent",
+            teacher: item.teacher._id,
+          });
+        }
+        APIResponse.success(res, "success", {});
+      } catch (e) {
+        APIResponse.badRequest(res, "Invalid data", {});
+      }
+    })
+    .catch((err) => {
+      APIResponse.badRequest(res, "Invalid data", {});
+    });
 };
 
 const getAllTeachers = (req, res) => {
@@ -392,6 +452,18 @@ const getSelectedTeacherDetail = async (req, res) => {
       APIResponse.success(res, "No teacher found", []);
       return;
     }
+    var attendenceResult = await teacherAttendenceSchema.find({
+      teacher: req.query.id,
+    });
+    let total = attendenceResult.length ?? 0;
+    let present =
+      attendenceResult?.filter((item) => item.status === "present") ?? [];
+    teacher.attendance = {
+      presentPercent: total === 0 ? 0 : (present.length / total) * 100,
+      presentCount: present.length,
+      absentCount: total - present.length,
+      totalCount: total,
+    };
 
     // Create a new object or use .lean() to avoid modifying the original document
     const teacherDetails = { ...teacher._doc };
@@ -520,4 +592,5 @@ module.exports = {
   getAllTeachers,
   getSelectedTeacherDetail,
   uploadTeacherPhoto,
+  getTeachersForAttendance,
 };

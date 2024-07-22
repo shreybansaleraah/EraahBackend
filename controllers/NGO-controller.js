@@ -7,13 +7,14 @@ const Teacher = require("../models/teacherSchema.js");
 const Subject = require("../models/subjectSchema.js");
 const Notice = require("../models/noticeSchema.js");
 const Complain = require("../models/complainSchema.js");
-
+const axios = require("axios");
 const teacherGallerySchema = require("../models/teacherGallerySchema.js");
 const studentGallerySchema = require("../models/studentGallerySchema.js");
 const ngoGalleryschema = require("../models/ngoGalleryschema.js");
 const { uploadImage } = require("../utility/uploadImage.js");
 const subjectSchema = require("../models/subjectSchema.js");
 const NGORegister = async (req, res) => {
+  console.log("ngo reg");
   try {
     const existingNGOByEmail = await NGO.findOne({ email: req.body.email });
     const existingNGOByName = await NGO.findOne({ name: req.body.name });
@@ -28,9 +29,11 @@ const NGORegister = async (req, res) => {
 
     // upload images and get url for bank statement and address prrof
     // console.log("adding ngo");
+
     const ngo = new NGO({
       ...req.body,
       password: hashedPass,
+      pg_key: "",
     });
     // console.log("ngo object");
     // console.log(ngo);
@@ -40,12 +43,140 @@ const NGORegister = async (req, res) => {
     } else if (existingNGOByName) {
       res.send({ message: "Name already exists" });
     } else {
-      let result = await NGO.create(ngo);
-      result.password = undefined;
-      res.send("success");
+      // if (req.file) {
+      try {
+        // console.log(req.file["bankStatement"]);
+
+        // console.log(req.file["addressProof"]);
+        // console.log(req.files);
+        if (req.files["bankStatement"] && req.files["addressProof"]) {
+          console.log("bankStatement");
+          uploadImage(
+            req.files["bankStatement"][0],
+            (url) => {
+              ngo.bankUrl = url;
+              // console.log("redirect is : ", encodeURIComponent(url));
+
+              uploadImage(
+                req.files["addressProof"][0],
+                (url) => {
+                  ngo.addUrl = url;
+                  // console.log("redirect is : ", encodeURIComponent(url));
+                  // APIResponse.success(res, "success", ngo);
+                  // generating token using client credentials for create child merchant
+                  axios
+                    .post("https://uat-accounts.payu.in/oauth/token", {
+                      client_id: process.env.payuTestClientId,
+                      client_secret: process.env.payuTestClientSecret,
+                      grant_type: "client_credentials",
+                      scope: "refer_child_merchant",
+                    })
+                    .then((tokenResponse) => {
+                      console.log(
+                        "====================token response ====================="
+                      );
+                      console.log(tokenResponse);
+                      var tempChildMerchant = {
+                        // "merchant": {
+                        // product: "PayUbiz",
+                        // email: "test.user11.aggregator@payutest.in",
+                        // mobile: "8860890284",
+                        product_account: {
+                          product: "PayUbiz",
+                          name: ngo.name,
+                          email: ngo.email,
+                          mobile: ngo.mobile,
+                          aggregator_parent_mid: "8315850",
+                          merchant_type: "aggregator",
+                          // pancard_number: ngo.pan,
+                          // pancard_name: ngo.name,
+                          // business_name: ngo.name,
+                          business_entity_id: 15,
+                          // bank_detail: {
+                          //   bank_account_number: ngo.bankDetails.accountNumber,
+                          //   holder_name: ngo.bankDetails.name,
+                          //   ifsc_code: ngo.bankDetails.ifsc,
+                          // },
+                        },
+                      };
+                      console.log(tempChildMerchant);
+
+                      axios
+                        .post(
+                          "https://uat-onepayuonboarding.payu.in/api/v3/product_accounts",
+                          tempChildMerchant,
+                          {
+                            headers: {
+                              Authorization:
+                                tokenResponse.data.token_type +
+                                " " +
+                                tokenResponse.data.access_token,
+                            },
+                          }
+                        )
+                        .then(async (childMerchantResponse) => {
+                          // console.log(
+                          //   childMerchantResponse.data.merchant.product_account_detail
+                          //     .pg_key
+                          // );
+                          ngo.pgKey =
+                            childMerchantResponse.data.product_account.product_account_detail.pg_key;
+                          console.log("merchant id");
+                          console.log(
+                            childMerchantResponse.data.product_account.mid
+                          );
+                          // console.log(childMerchantResponse.body);
+                          // creating ngo
+
+                          let result = await NGO.create(ngo);
+                          result.password = undefined;
+                          res.send("success");
+                        })
+                        .catch((childMerchantError) => {
+                          // console.log("childMerchantError");
+                          console.log(
+                            "====================childMerchantError ====================="
+                          );
+                          console.log(childMerchantError);
+                          APIResponse.badRequest(
+                            res,
+                            "Invalid data",
+                            childMerchantError
+                          );
+                          // console.log(childMerchantError.data);
+                        });
+                    })
+                    .catch((tokenErr) => {
+                      // console.log("token Error");
+                      APIResponse.badRequest(
+                        res,
+                        "something went wrong,please try again",
+                        {}
+                      );
+                    });
+                },
+                (onError) => {
+                  APIResponse.badRequest(res, "Invalid address proof", {});
+                }
+              );
+            },
+            (onError) => {
+              APIResponse.badRequest(res, "Invalid bank statement", {});
+            }
+          );
+        } else {
+          APIResponse.badRequest(res, "Invalid data", {});
+        }
+      } catch (e) {
+        // console.log("error");
+        APIResponse.badRequest(res, "Invalid data", {});
+      }
+      // console.log(ngo);
+
+      // }
     }
   } catch (err) {
-    // console.log(err);
+    console.log(err);
     if (err.code === 11000) {
       // Duplicate key error
       console.error("Duplicate key error:", err.message);
@@ -198,6 +329,104 @@ const uploadBulkCsv = async (req, res) => {
           .catch((e) => {
             res.send({ data: "failed" });
           });
+      } else if (req.body.actionFor === "ngo") {
+        const result = await processNgoData(req);
+        for (var eachNgo of result) {
+          const salt = await bcrypt.genSalt(10);
+          // console.log("created salt");
+          // console.log(salt);
+          // console.log(req.body);
+          // console.log(req.body.password);
+          const hashedPass = await bcrypt.hash(eachNgo.password, salt);
+          // console.log("hashed pass");
+          // console.log(hashedPass);
+
+          // upload images and get url for bank statement and address prrof
+          // console.log("adding ngo");
+
+          const ngo = new NGO({
+            ...eachNgo,
+            password: hashedPass,
+            pg_key: "",
+          });
+
+          axios
+            .post("https://accounts.payu.in/oauth/token", {
+              client_id: process.env.testClientId,
+              client_secret: process.env.testClientSecret,
+              grant_type: "client_credentials",
+              scope: "refer_child_merchant",
+            })
+            .then((tokenResponse) => {
+              var tempChildMerchant = {
+                // "merchant": {
+                // product: "PayUbiz",
+                // email: "test.user11.aggregator@payutest.in",
+                // mobile: "8860890284",
+                product: "PayUbiz",
+                name: ngo.name,
+                email: ngo.email,
+                mobile: ngo.mobile,
+                aggregator_parent_mid: "8315850",
+                merchant_type: "aggregator",
+                pancard_number: ngo.pan,
+                pancard_name: ngo.name,
+                business_name: ngo.name,
+                business_entity_id: 14,
+                // bank_detail: {
+                //   bank_account_number: ngo.bankDetails.accountNumber,
+                //   holder_name: ngo.bankDetails.name,
+                //   ifsc_code: ngo.bankDetails.ifsc,
+                // },
+              };
+
+              axios
+                .post(
+                  "https://onboarding.payu.in/api/v1/merchants",
+                  tempChildMerchant,
+                  {
+                    headers: {
+                      Authorization:
+                        tokenResponse.data.token_type +
+                        " " +
+                        tokenResponse.data.access_token,
+                    },
+                  }
+                )
+                .then(async (childMerchantResponse) => {
+                  // console.log(
+                  //   childMerchantResponse.data.merchant.product_account_detail
+                  //     .pg_key
+                  // );
+                  ngo.pgKey =
+                    childMerchantResponse.data.merchant.product_account_detail.pg_key;
+                  // console.log(childMerchantResponse.body);
+                  // creating ngo
+
+                  let result = await NGO.create(ngo);
+                  result.password = undefined;
+                  res.send("success");
+                })
+                .catch((childMerchantError) => {
+                  // console.log("childMerchantError");
+                  // console.log(childMerchantError);
+                  APIResponse.badRequest(
+                    res,
+                    "Invalid data",
+                    childMerchantError
+                  );
+                  // console.log(childMerchantError.data);
+                });
+            })
+            .catch((tokenErr) => {
+              // console.log("token Error");
+              APIResponse.badRequest(
+                res,
+                "something went wrong,please try again",
+                {}
+              );
+            });
+        }
       }
     } else {
       res.status(401).send({ message: "Unauthorized" });
@@ -464,8 +693,13 @@ async function processTeacherData(req) {
               sclassName: itemClass,
               school: req.params.id,
             });
+            // console.log("Class Id");
+            // console.log(itemClass);
+            // console.log(req.params.id);
+            // console.log(classId);
             const existingTeacherByEmailAndClass = await Teacher.findOne({
               email,
+              school: req.params.id,
             })
               .populate("teachSclass")
               .populate("teachSubject")
@@ -477,7 +711,7 @@ async function processTeacherData(req) {
                   .map((subject) => subject.subName.toString())
                   .includes(subject);
             }
-            // console.log("exist subject start");
+            console.log("exist subject start");
 
             // const existingSubject = await subjectSchema.findOne({
             //   subName: subject,
@@ -492,8 +726,8 @@ async function processTeacherData(req) {
                 .map((sclass) => sclass.sclassName.toString())
                 .includes(itemClass);
               // console.log("sAC");
-              // console.log(existingTeacherByEmailAndClass._id);
-              // console.log(classId);
+              console.log(existingTeacherByEmailAndClass._id);
+              console.log(classId);
               if (existEmailAndClass) {
                 subjectAndClass = await subjectSchema.findOne({
                   sclassName: classId._id,
@@ -505,6 +739,7 @@ async function processTeacherData(req) {
             }
 
             // console.log("else condition");
+            // console.log(existEmailAndClass);
             if (existEmailAndClass) {
               if (subjectAndClass) {
                 continue;
@@ -589,7 +824,7 @@ async function processTeacherData(req) {
                   sclassName: classId._id,
                 });
               }
-              // console.log("photo");
+              console.log("photo");
               // console.log(photo);
               var results = {
                 name,
@@ -620,13 +855,14 @@ async function processTeacherData(req) {
                 results.name.length !== 0
               ) {
                 // console.log("results if cond");
+                // console.log(results);
                 var teacher = await Teacher.create(results);
                 await Subject.findByIdAndUpdate(subjectId._id, {
                   teacher: teacher._id,
                 });
-                // // console.log(classTeacher.toLowerCase().includes("yes"));
-                // // console.log(classTeacher.toLowerCase());
-                // // console.log(typeof classTeacher);
+                // console.log(classTeacher.toLowerCase().includes("yes"));
+                // console.log(classTeacher.toLowerCase());
+                // console.log(typeof classTeacher);
                 if (!classTeacher.toLowerCase().includes("no")) {
                   // console.log("yes class teacher");
                   await Student.updateMany(
@@ -719,6 +955,61 @@ async function processSubjectData(req) {
       item.subName !== "" &&
       item.subName !== undefined &&
       item.subName.length !== 0
+  );
+}
+async function processNgoData(req) {
+  const lines = req.file.buffer.toString().split("\n").slice(1);
+  const results = [];
+
+  for (const line of lines) {
+    const [
+      name,
+      founderName,
+      pan,
+      founderPan,
+      emailId,
+      password,
+      address,
+      trustee,
+      ngoName,
+      city,
+      state,
+      nameOnBank,
+      accountNumber,
+      ifsc,
+      bankName,
+      branchName,
+      ...rest
+    ] = line.split(",");
+    await NGO.deleteMany({
+      schoolName: ngoName,
+      city: city,
+    });
+    results.push({
+      name: name,
+      address: address,
+      founderName: founderName,
+      founderPan: founderPan,
+      email: emailId,
+      pan: pan,
+      password: password,
+      trustee: trustee,
+      schoolName: ngoName,
+      city: city,
+      state: state,
+      bankDetails: {
+        name: nameOnBank,
+        accountNumber: accountNumber,
+        ifsc: ifsc,
+        bankName: bankName,
+        branchName: branchName ? branchName.replace(/[\r\n]/g, "") : undefined,
+      },
+    });
+  }
+
+  return results.filter(
+    (item) =>
+      item.name !== "" && item.name !== undefined && item.name.length !== 0
   );
 }
 

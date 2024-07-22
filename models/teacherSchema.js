@@ -8,7 +8,6 @@ const teacherSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      unique: true,
       required: true,
     },
     aadhar: {
@@ -33,6 +32,11 @@ const teacherSchema = new mongoose.Schema(
     role: {
       type: String,
       default: "Teacher",
+    },
+    pgKey: {
+      type: String,
+      default: "",
+      required: false,
     },
     school: {
       type: mongoose.Schema.Types.ObjectId,

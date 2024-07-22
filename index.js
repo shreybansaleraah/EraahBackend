@@ -77,6 +77,7 @@ app.use((err, req, res, next) => {
 
     return APIResponse.badRequest(res, errorMessage, {});
   } else {
+    console.log(err);
     return APIResponse.internalServerError(
       res,
       `Oops! This shouldn't have happened. Please try this in some time. We sincerely apologise for the inconvenience caused.`,

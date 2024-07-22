@@ -4,7 +4,7 @@ const teacherAttendenceSchema = new mongoose.Schema(
   {
     status: {
       type: String,
-      default: false,
+      default: "absent",
       require: true,
     },
     school: {
@@ -14,6 +14,14 @@ const teacherAttendenceSchema = new mongoose.Schema(
     teacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "teacher",
+    },
+    date: {
+      type: Date,
+      default: Date.now,
+      // Set a function to extract only the date part
+      get: function (date) {
+        return date.toISOString().split("T")[0];
+      },
     },
   },
   { timestamps: true }

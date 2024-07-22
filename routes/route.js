@@ -87,6 +87,7 @@ const {
   getAllTeachers,
   getSelectedTeacherDetail,
   uploadTeacherPhoto,
+  getTeachersForAttendance,
 } = require("../controllers/teacher-controller.js");
 const {
   facilityCreate,
@@ -305,7 +306,14 @@ router.post("/donate/failed", [], (req, res) => {
 });
 
 // NGO
-router.post("/NGOReg", NGORegister);
+router.post(
+  "/NGOReg",
+  upload.fields([
+    { name: "bankStatement", maxCount: 1 },
+    { name: "addressProof", maxCount: 1 },
+  ]),
+  NGORegister
+);
 router.post("/NGOLogin", NGOLogIn);
 router.post("/removeNgo/:id", removeNgo);
 router.post("/updateNgo", updateNGO);
@@ -397,7 +405,8 @@ router.delete("/Teacher/:id", deleteTeacher);
 
 router.put("/TeacherSubject", updateTeacherSubject);
 
-router.post("/TeacherAttendance/:id", teacherAttendance);
+router.post("/TeacherAttendance", teacherAttendance);
+router.get("/attendance/getTeachers", getTeachersForAttendance);
 
 // Notice
 
