@@ -110,10 +110,20 @@ module.exports = {
   }),
 
   donorId: Joi.object({
-    id: Joi.string().required().messages({
-      "string.base": "id should be a string",
-      "any.required": "id is required",
-    }),
+    id: Joi.string()
+      .allow(null)
+      .custom((value, helpers) => {
+        if (value === null) {
+          // Throw a custom error when id is null
+          return helpers.message("Custom error: id should not be null");
+        }
+        return value; // Return the value if no custom error is thrown
+      })
+      .required()
+      .messages({
+        "string.base": "id should be a string",
+        "any.required": "id is required",
+      }),
   }),
   idRequire: Joi.object({
     id: Joi.string().required().messages({

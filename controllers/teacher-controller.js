@@ -246,7 +246,7 @@ const getTeacherDetail = async (req, res) => {
   try {
     const teacher = await Teacher.findById(req.params.id)
       .populate("teachSubject", "subName sessions")
-      .populate("school", "schoolName")
+      .populate("school", "schoolName city")
       .populate("teachSclass", "sclassName");
 
     if (!teacher) {

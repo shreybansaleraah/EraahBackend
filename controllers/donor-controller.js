@@ -1,5 +1,5 @@
 const donorInfoSchema = require("../models/donorInfoSchema");
-const { APIResponse, MathUtil } = require("../utility");
+const { APIResponse, MathUtil, PaymentPages } = require("../utility");
 const Teacher = require("../models/teacherSchema.js");
 const otpModel = require("../models/otpModel.js");
 const AdminModel = require("../models/adminSchema.js");
@@ -87,6 +87,7 @@ const getAllDonors = (req, res) => {
     });
 };
 const getDonorTeachers = (req, res) => {
+  console.log("getting");
   donorInfoSchema
     .findById(req.query.id)
     .then((donor) => {
@@ -115,7 +116,8 @@ const getDonorTeachers = (req, res) => {
       }
     })
     .catch((err) => {
-      APIResponse.badRequest(res, err, {});
+      console.log(err);
+      APIResponse.unAuthorized(res, "unauthorized");
     });
 };
 const getNgoTeachers = (req, res) => {
@@ -247,6 +249,9 @@ const verifyDonorOtp = (req, res) => {
     });
 };
 const paymentSuccess = (req, res) => {
+  console.log(req);
+  console.log(req.body);
+  /*
   donationSchema
     .findOne({
       name: req.body.firstname,
@@ -254,6 +259,7 @@ const paymentSuccess = (req, res) => {
       phoneNumber: req.body.phone,
     })
     .then((donationResponse) => {
+      console.log(donationResponse);
       Teacher.findOne(donationResponse.teacherId)
         .populate("school")
         .then((teacherResponse) => {
@@ -357,8 +363,9 @@ const paymentSuccess = (req, res) => {
           APIResponse.badRequest(res, "Invalid data", {});
         });
 
-      res.status(200).redirect("http://localhost:3000/explore");
+      // res.status(200).redirect("http://localhost:3000/explore");
     });
+*/
 };
 
 const donate = (req, res) => {
@@ -397,8 +404,8 @@ const donate = (req, res) => {
       const firstname = donorData.name;
       const email = donorData.email;
       const phone = donorData.phoneNumber;
-      const surl = "http://localhost:5000/donate/success";
-      const furl = "http://localhost:5000/donate/failed";
+      const surl = "http://192.168.1.30:5000/donate/success";
+      const furl = "http://192.168.1.30:5000/donate/failed";
       const udf1 = "";
       const udf2 = "";
       const udf3 = "";
